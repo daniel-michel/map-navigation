@@ -40,7 +40,7 @@ async function main()
 	canvas = document.getElementById("canvas");
 	resize();
 	renderer = new Renderer(canvas);
-	renderer.cameraPosition = new GeoPos(49.6165349, 8.7208657).getMercatorProjection();
+	renderer.cameraPosition = new GeoPos(51.4934, 0).getMercatorProjection();
 
 	loop = new Loop(0, () => draw()).start();
 
