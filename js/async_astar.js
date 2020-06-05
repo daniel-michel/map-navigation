@@ -43,7 +43,7 @@ export default class AStar
 		//this.closedList = [];
 		this.from = from;
 		this.to = to;
-		this.accuracy = 1;
+		this.accuracy = 0.6;
 	}
 	/**
 	 * 

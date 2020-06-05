@@ -93,7 +93,7 @@ export default class GeoPos extends Vec3
 	}
 	/**
 	 * 
-	 * @param {MercatorPos} mecratorPosition 
+	 * @param {MercatorPos|Vec2} mecratorPosition 
 	 */
 	static fromMercatorProjection(mecratorPosition)
 	{

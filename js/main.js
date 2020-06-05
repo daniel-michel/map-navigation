@@ -7,7 +7,7 @@ import Input from "./input.js";
 import Loop from "./loop.js";
 import Vec3 from "./math/vec3.js";
 import OSMPathfinder from "./osm/pathfinder.js";
-import { StreetSection, StreetPath } from "./osm/street.js";
+import { StreetSection, StreetPath, DRIVEABLE_STREET_RULE } from "./osm/street.js";
 
 /**
  * @type {HTMLCanvasElement}
@@ -72,40 +72,46 @@ async function main()
 		}
 	});
 
-	//await mapData.load(new Rect(new GeoPos(49.6165349, 8.7208657), new GeoPos(0.05, 0.05)));
 	//draw();
-
+	let fromCoord;
+	let toCoord;
 	try
 	{
 		let navigationObj = await (await fetch("./settings/navigation.json")).json();
-		let from = await mapData.getClosestStreet(new GeoPos(navigationObj.from.lat, navigationObj.from.lon).getMercatorProjection(), 0.00001);
-		renderer.cameraPosition = from.getMecratorPos();
-		let to = await mapData.getClosestStreet(new GeoPos(navigationObj.to.lat, navigationObj.to.lon).getMercatorProjection(), 0.00001);
-		console.log(from, to);
-		/**
-		 * @type {import("./osm/pathfinder.js").WeightingFunction}
-		 */
-		let weightingFunction = (street, forwards) =>
-		{
-			if (!street.matchesRules())
-				return -1;
-			let maxspeed = +street.element?.tags?.maxspeed;
-			if (!isNaN(maxspeed))
-				return 130 / maxspeed;
-			return 130 / 30;
-		};
-		{
-			let pathfinder = new OSMPathfinder(mapData, from, to, weightingFunction);
-			path = await pathfinder.find();
-		}
-		{
-			let pathfinder = new OSMPathfinder(mapData, from, to, weightingFunction);
-			path = await pathfinder.find();
-		}
+		fromCoord = new GeoPos(navigationObj.from.lat, navigationObj.from.lon);
+		toCoord = new GeoPos(navigationObj.to.lat, navigationObj.to.lon)
 	}
 	catch (e)
 	{
 		console.warn("Error while pathfinding", e);
+		let cameraGeoCoord = GeoPos.fromMercatorProjection(renderer.cameraPosition);
+		//mapData.load(new Rect(cameraGeoCoord, new GeoPos(0.001, 0.001)));
+		fromCoord = cameraGeoCoord.copy().add(new GeoPos(Math.random() * 0.3, Math.random() * 0.3));
+		toCoord = cameraGeoCoord.copy().add(new GeoPos(Math.random() * 0.3, Math.random() * 0.3));
+	}
+	let from = await mapData.getClosestStreet(fromCoord.getMercatorProjection(), 0.00001, true, DRIVEABLE_STREET_RULE);
+	renderer.cameraPosition = from.getMecratorPos();
+	let to = await mapData.getClosestStreet(toCoord.getMercatorProjection(), 0.00001, true, DRIVEABLE_STREET_RULE);
+	console.log(from, to);
+	/**
+	 * @type {import("./osm/pathfinder.js").WeightingFunction}
+	 */
+	let weightingFunction = (street, forwards) =>
+	{
+		if (!street.matchesRules())
+			return -1;
+		let maxspeed = +street.element?.tags?.maxspeed;
+		if (!isNaN(maxspeed))
+			return 130 / maxspeed;
+		return 130 / 30;
+	};
+	{
+		let pathfinder = new OSMPathfinder(mapData, from, to, weightingFunction);
+		path = await pathfinder.find();
+	}
+	{
+		let pathfinder = new OSMPathfinder(mapData, from, to, weightingFunction);
+		path = await pathfinder.find();
 	}
 }
 
@@ -125,7 +131,6 @@ async function draw()
 	let skip = Math.max(1, Math.floor(1 / (renderer.scale / 20000000)));
 	//let wholeWorld = new Rect(new GeoPos(0, 0), new GeoPos(90, 180));
 	//let streets = mapData.streets.get(wholeWorld);
-	//let streets = mapData.streets.get(new Rect(new GeoPos(49.6165349, 8.7208657), new GeoPos(0.025, 0.025)));
 	//let streets = mapData.streets.get(new Rect(GeoPos.fromMecratorProjection(renderer.cameraPosition), new GeoPos(0.025, 0.025)));
 	let streets = mapData.streets.get(GeoPos.rectFromMercatorProjection(renderer.getCameraArea()));
 	renderer.startFrame();

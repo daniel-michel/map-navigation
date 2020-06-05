@@ -63,14 +63,6 @@ export default class OSMPathfinder
 	{
 		this.ready = false;
 
-
-		/* let junctions = Object.values(await this.to.getNextJunctions()).filter(jun => jun);
-		this.toWaypoint = this.getWaypoint(junctions[0].node);
-		junctions = Object.values(await this.from.getNextJunctions()).filter(jun => jun);
-		this.fromWaypoint = this.getWaypoint(junctions[0].node);
-		console.log(this.fromWaypoint, this.toWaypoint); */
-
-
 		this.toWaypoint = this.getWaypoint(this.to);
 		this.fromWaypoint = this.getWaypoint(this.from);
 
@@ -168,9 +160,6 @@ export default class OSMPathfinder
 	 */
 	getHCost(node)
 	{
-		/* if (node instanceof OSMNode)
-			return Vec3.distance(this.to.getGeoPos().get3dCoordinates(), node.geoPos.get3dCoordinates());
-		return Vec3.distance(this.to.getGeoPos().get3dCoordinates(), node.getGeoPos().get3dCoordinates()); */
 		if (!this.toWaypoint)
 			return 0;
 		if (node instanceof OSMNode)
@@ -184,40 +173,8 @@ export default class OSMPathfinder
 		let waypoints = await this.astar.find();
 		console.timeEnd("pathfinding");
 		console.log("path: ", waypoints);
-		/* let streets = [];
-		for (let i = 0; i < waypoints.length - 1; i++)
-		{
-			let current = waypoints[i];
-			let next = waypoints[i + 1];
-			let currNode = current.node;
-			let nextNode = next.node;
-			let street;
-			let streetSection;
-			if (currNode instanceof OSMNode)
-			{
-				if (nextNode instanceof OSMNode)
-				{
-					let otherStreets = await nextNode.getStreets();
-					street = (await currNode.getStreets()).filter(s => otherStreets.includes(s))[0];
-					streetSection = new StreetSection(street, { index: street.nodes.findIndex(n => n === currNode), t: 0 }, { index: street.nodes.findIndex(n => n === nextNode), t: 0 });
-				}
-				else
-				{
-					street = nextNode.street;
-					streetSection = new StreetSection(street, { index: street.nodes.findIndex(n => n === currNode), t: 0 }, { index: nextNode.index, t: nextNode.t });
-				}
-			}
-			else
-			{
-				street = currNode.street;
-				if (nextNode instanceof OSMNode)
-				{
-					streetSection = new StreetSection(street, { index: currNode.index, t: currNode.t }, { index: street.nodes.findIndex(n => n === nextNode), t: 0 });
-				}
-			}
-			streets.push(streetSection);
-		} */
-		//return StreetPath.createFromNodesAndStreetPositions(waypoints.map(waypoint => waypoint.waypoint.userData.node));
+		if (!waypoints)
+			return;
 		let streets = waypoints.map(waypoint => waypoint?.connection?.userData?.street).filter(v => v);
 		let nodes = waypoints.map(waypoint => waypoint.waypoint.userData.node);
 		streets.shift();

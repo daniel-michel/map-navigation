@@ -184,9 +184,10 @@ export default class OSMData
 	 * @param {MercatorPos|GeoPos} pos 
 	 * @param {number} searchRadius 
 	 * @param {boolean} load determines whether to load the area to search in if it hasn't been loaded
+	 * @param {import("./street.js").Rule[]} rules
 	 * @returns {Promise<StreetPosition>}
 	 */
-	async getClosestStreet(pos, searchRadius, load = true)
+	async getClosestStreet(pos, searchRadius, load = true, rules = undefined)
 	{
 		let mercator = pos instanceof MercatorPos ? pos : pos.getMercatorProjection();
 		let searchArea = new Rect(mercator, new Vec2(searchRadius, searchRadius));
@@ -200,6 +201,8 @@ export default class OSMData
 		let closest = null;
 		for (let street of streets)
 		{
+			if (rules && !street.matchesRules(rules))
+				continue;
 			let point = street.closestPointTo(mercator);
 			if (!closest || closest.dist > point.dist)
 			{
