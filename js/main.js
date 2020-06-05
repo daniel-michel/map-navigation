@@ -79,6 +79,7 @@ async function main()
 	{
 		let navigationObj = await (await fetch("./settings/navigation.json")).json();
 		let from = await mapData.getClosestStreet(new GeoPos(navigationObj.from.lat, navigationObj.from.lon).getMercatorProjection(), 0.00001);
+		renderer.cameraPosition = from.getMecratorPos();
 		let to = await mapData.getClosestStreet(new GeoPos(navigationObj.to.lat, navigationObj.to.lon).getMercatorProjection(), 0.00001);
 		console.log(from, to);
 		/**
