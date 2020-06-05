@@ -2,7 +2,7 @@ export default class OSMRequest
 {
 	constructor()
 	{
-		this.baseUrl = "http://overpass-api.de/api/";
+		this.baseUrl = "https://overpass-api.de/api/";
 		//this.baseUrl = "https://overpass.kumi.systems/api/";
 		this.statusUrl = this.baseUrl + "status";
 		this.apiUrl = this.baseUrl + "interpreter?data=";
