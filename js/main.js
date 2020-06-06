@@ -34,6 +34,21 @@ let path;
 
 let mouse_pos = new Vec2();
 
+/**
+ * @type {import("./osm/pathfinder.js").WeightingFunction}
+ */
+let weightingFunction = (street, forwards) =>
+{
+	if (!street.matchesRules())
+		return -1;
+	let maxspeed = +street.element?.tags?.maxspeed;
+	if (isNaN(maxspeed))
+		maxspeed = +street.element?.tags?.["maxspeed:" + (forwards ? "forward" : "backward")];
+	if (isNaN(maxspeed))
+		return 130 / 30;
+	return 130 / maxspeed;
+};
+
 window.onload = main;
 async function main()
 {
@@ -93,24 +108,13 @@ async function main()
 	renderer.cameraPosition = from.getMercatorPos();
 	let to = await mapData.getClosestStreet(toCoord.getMercatorProjection(), 0.00001, true, DRIVEABLE_STREET_RULE);
 	console.log(from, to);
-	/**
-	 * @type {import("./osm/pathfinder.js").WeightingFunction}
-	 */
-	let weightingFunction = (street, forwards) =>
+
 	{
-		if (!street.matchesRules())
-			return -1;
-		let maxspeed = +street.element?.tags?.maxspeed;
-		if (!isNaN(maxspeed))
-			return 130 / maxspeed;
-		return 130 / 30;
-	};
-	{
-		let pathfinder = new OSMPathfinder(mapData, from, to, weightingFunction);
+		let pathfinder = new OSMPathfinder(mapData, from, to, { calculateWeighting: weightingFunction });
 		path = await pathfinder.find();
 	}
 	{
-		let pathfinder = new OSMPathfinder(mapData, from, to, weightingFunction);
+		let pathfinder = new OSMPathfinder(mapData, from, to, { calculateWeighting: weightingFunction });
 		path = await pathfinder.find();
 	}
 }
@@ -167,6 +171,7 @@ async function draw()
 			let font_size = 30;
 			renderer.context.font = (font_size * 0.8) + "px Arial";
 			renderer.context.fillText(`length = ${closest.street.getLength()}`, 50, font_size * 1 + 0 * font_size * 0.8);
+			renderer.context.fillText(`weight = ${weightingFunction(closest.street, true)}`, 50, font_size * 1 + 1 * font_size * 0.8);
 			/* let prevJunction = (await closest.getNextJunctions()).previous;
 			if (prevJunction)
 			{

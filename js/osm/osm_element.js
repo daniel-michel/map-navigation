@@ -12,7 +12,7 @@ export default class OSMElement
 		this.element = elem;
 		this.data = data;
 		/**
-		 * @type {import("./relation.js").default[]}
+		 * @type {import("./restriction.js").default[]}
 		 */
 		this.restrictions = [];
 	}

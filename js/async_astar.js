@@ -43,7 +43,7 @@ export default class AStar
 		//this.closedList = [];
 		this.from = from;
 		this.to = to;
-		this.accuracy = 0.6;
+		this.accuracy = 1;
 	}
 	/**
 	 * 
@@ -81,14 +81,16 @@ export default class AStar
 			for (let connection of connections)
 			{
 				let gcost = waypoint.gcost + connection.cost * this.accuracy;
+				let fcost = gcost + connection.waypoint.hcost;
 				let allreadyInList = !isNaN(connection.waypoint.gcost);
-				if (this.closedList.includes(connection.waypoint) || (allreadyInList && connection.waypoint.gcost >= gcost))
+				if (this.closedList.includes(connection.waypoint) || (allreadyInList && connection.waypoint.fcost <= fcost))
 					continue;
+				if (allreadyInList)
+					this.openList.remove(connection.waypoint.fcost);
 				connection.waypoint.gcost = gcost;
-				connection.waypoint.fcost = connection.waypoint.gcost + connection.waypoint.hcost;
+				connection.waypoint.fcost = fcost;
 				connection.waypoint.previous = { connection: connection, previous: waypoint };
-				if (!allreadyInList)
-					this.openList.add(connection.waypoint);
+				this.openList.add(connection.waypoint);
 			}
 		}
 	}
