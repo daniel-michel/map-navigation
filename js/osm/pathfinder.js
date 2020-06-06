@@ -95,12 +95,13 @@ export default class OSMPathfinder
 				connections = Object.values(await node.getNextJunctions()).filter(con => con);
 			for (let connection of connections)
 			{
-				let weight = this.calculateWeighting(connection.section.street, connection.section.forwards);
+				let forwards = connection.section.forwards;
+				let weight = this.calculateWeighting(connection.section.street, forwards);
 				if (isNaN(weight))
 					console.warn(weight, connection.section.street);
 				if (weight < 0)
 					continue;
-				let cost = connection.section.getLength();// * weight;
+				let cost = connection.section.getLength() * weight;
 				neighbors.push({
 					cost,
 					waypoint: this.getWaypoint(connection.node),
@@ -122,17 +123,20 @@ export default class OSMPathfinder
 			}
 			for (let additional of additionalWaypoints)
 			{
+				let forwards;
 				let cost;
 				let weight;
 				if (node instanceof OSMNode)
 				{
 					cost = StreetSection.fromNodeToStreetPosition(node, additional).getLength();
-					weight = this.calculateWeighting(additional.street, additional.index > additional.street.nodes.findIndex(n => n === node));
+					forwards = additional.index > additional.street.nodes.findIndex(n => n === node);
+					weight = this.calculateWeighting(additional.street, forwards);
 				}
 				else
 				{
 					cost = StreetSection.fromStreetPositions(node, additional).getLength();
-					weight = this.calculateWeighting(node.street, additional.index > node.index || (additional.index === node.index && additional.t > node.t));
+					forwards = additional.index > node.index || (additional.index === node.index && additional.t > node.t);
+					weight = this.calculateWeighting(node.street, forwards);
 				}
 				if (weight < 0)
 					continue;

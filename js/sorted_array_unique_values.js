@@ -42,6 +42,26 @@ export default class SortedArrayUniqueValues
 				max = center;
 		}
 	}
+	remove(value)
+	{
+		let min = -1;
+		let max = this.array.length;
+		while (true)
+		{
+			if (max - min <= 1)
+				return false;
+			let center = Math.floor((min + max) / 2);
+			let v = this.get_value(this.array[center]);
+			if (value === v)
+			{
+				return this.array.splice(center, 1);
+			}
+			if (value > v)
+				min = center;
+			else
+				max = center;
+		}
+	}
 	/**
 	 * 
 	 * @param {T[]} elements 
