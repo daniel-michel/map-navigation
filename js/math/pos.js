@@ -93,14 +93,14 @@ export default class GeoPos extends Vec3
 	}
 	/**
 	 * 
-	 * @param {MercatorPos|Vec2} mecratorPosition 
+	 * @param {MercatorPos|Vec2} mercatorPosition 
 	 */
-	static fromMercatorProjection(mecratorPosition)
+	static fromMercatorProjection(mercatorPosition)
 	{
-		let lon = GeoPos.lonFromMercatorProjection(mecratorPosition.x);
-		let lat = GeoPos.latFromMercatorProjection(mecratorPosition.y);
-		if (mecratorPosition instanceof Vec3)
-			return new GeoPos(lat, lon, mecratorPosition.z);
+		let lon = GeoPos.lonFromMercatorProjection(mercatorPosition.x);
+		let lat = GeoPos.latFromMercatorProjection(mercatorPosition.y);
+		if (mercatorPosition instanceof Vec3)
+			return new GeoPos(lat, lon, mercatorPosition.z);
 		else
 			return new GeoPos(lat, lon);
 	}

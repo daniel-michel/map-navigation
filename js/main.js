@@ -90,7 +90,7 @@ async function main()
 		toCoord = cameraGeoCoord.copy().add(new GeoPos(Math.random() * 0.3, Math.random() * 0.3));
 	}
 	let from = await mapData.getClosestStreet(fromCoord.getMercatorProjection(), 0.00001, true, DRIVEABLE_STREET_RULE);
-	renderer.cameraPosition = from.getMecratorPos();
+	renderer.cameraPosition = from.getMercatorPos();
 	let to = await mapData.getClosestStreet(toCoord.getMercatorProjection(), 0.00001, true, DRIVEABLE_STREET_RULE);
 	console.log(from, to);
 	/**
@@ -131,7 +131,7 @@ async function draw()
 	let skip = Math.max(1, Math.floor(1 / (renderer.scale / 20000000)));
 	//let wholeWorld = new Rect(new GeoPos(0, 0), new GeoPos(90, 180));
 	//let streets = mapData.streets.get(wholeWorld);
-	//let streets = mapData.streets.get(new Rect(GeoPos.fromMecratorProjection(renderer.cameraPosition), new GeoPos(0.025, 0.025)));
+	//let streets = mapData.streets.get(new Rect(GeoPos.fromMercatorProjection(renderer.cameraPosition), new GeoPos(0.025, 0.025)));
 	let streets = mapData.streets.get(GeoPos.rectFromMercatorProjection(renderer.getCameraArea()));
 	renderer.startFrame();
 	for (let street of streets)
@@ -140,11 +140,11 @@ async function draw()
 		for (let i = 0; i < street.geoCoordinates.length + skip - 1; i += skip)
 		{
 			let index = Math.min(i, street.geoCoordinates.length - 1);
-			let mecrator = street.geoCoordinates[index].getMercatorProjection();
-			renderer.lineTo(mecrator);
+			let mercator = street.geoCoordinates[index].getMercatorProjection();
+			renderer.lineTo(mercator);
 		}
 		renderer.lineWidth(street.matchesRules() ? 0.0000002 : 0.0000001).stroke(street.matchesRules() ? "hsla(0, 0%, 100%, 0.8)" : "hsla(0, 0%, 100%, 0.2)");
-		/* let positions = street.geoCoordinates.map(geocoord => geocoord.getMecratorProjection());
+		/* let positions = street.geoCoordinates.map(geocoord => geocoord.getMercatorProjection());
 		positions = positions.filter((point, i) => i % skip === 0 || i === positions.length - 1);
 		renderer.path(positions).lineWidth(street.matchesRules() ? 0.0000005 : 0.00000025).stroke(street.matchesRules() ? "hsla(0, 0%, 100%, 0.8)" : "hsla(0, 0%, 100%, 0.2)"); */
 	}
@@ -163,11 +163,11 @@ async function draw()
 		{
 			let positions = closest.street.geoCoordinates.map(geocoord => geocoord.getMercatorProjection());
 			renderer.path(positions).lineWidth(0.0000005).stroke("hsla(0, 100%, 58%, 0.8)");
-			renderer.path([renderer.project_back_2d(mouse_pos), closest.getMecratorPos()]).lineWidth(0.0000002).stroke("hsla(270, 100%, 60%, 0.7)");
+			renderer.path([renderer.project_back_2d(mouse_pos), closest.getMercatorPos()]).lineWidth(0.0000002).stroke("hsla(270, 100%, 60%, 0.7)");
 			let font_size = 30;
 			renderer.context.font = (font_size * 0.8) + "px Arial";
 			renderer.context.fillText(`length = ${closest.street.getLength()}`, 50, font_size * 1 + 0 * font_size * 0.8);
-			let prevJunction = (await closest.getNextJunctions()).previous;
+			/* let prevJunction = (await closest.getNextJunctions()).previous;
 			if (prevJunction)
 			{
 				//let section = (await prevJunction.node.getConnectionsToNeighbors()).filter(connection => connection.street === closest.street)[0]?.section;
@@ -177,7 +177,7 @@ async function draw()
 					renderer.path(section.getGeoCoordinates().map(geoPos => geoPos.getMercatorProjection())).lineWidth(0.0000005).stroke("hsla(60, 100%, 58%, 0.8)");
 					renderer.context.fillText(`length = ${section.getLength()}`, 50, font_size * 1 + 1 * font_size * 0.8);
 				}
-			}
+			} */
 			let i = 2;
 			for (const name in closest.street.element.tags)
 			{

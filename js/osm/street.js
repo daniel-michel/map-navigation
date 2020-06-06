@@ -44,7 +44,7 @@ export class StreetPosition
 		let pos = GeoPos.interpolate(this.street.geoCoordinates[this.index], this.street.geoCoordinates[this.index + 1], this.t);
 		return pos;
 	}
-	getMecratorPos()
+	getMercatorPos()
 	{
 		if (this.t === 0)
 			return this.street.geoCoordinates[this.index].getMercatorProjection();
@@ -501,7 +501,7 @@ export default class Street extends OSMWay
 	}
 	/**
 	 *
-	 * @param {Vec3} p the position as mecrator projection
+	 * @param {Vec3} p the position as mercator projection
 	 * @returns {ClosestPoint}
 	 */
 	closestPointTo(p)
@@ -512,9 +512,9 @@ export default class Street extends OSMWay
 		let closest = null;
 		for (let i = 0; i < this.geoCoordinates.length - 1; i++)
 		{
-			let mecrator0 = this.geoCoordinates[i].getMercatorProjection();
-			let mecrator1 = this.geoCoordinates[i + 1].getMercatorProjection();
-			let point = Vec2.closestPointOnLine(mecrator0, mecrator1, p);
+			let mercator0 = this.geoCoordinates[i].getMercatorProjection();
+			let mercator1 = this.geoCoordinates[i + 1].getMercatorProjection();
+			let point = Vec2.closestPointOnLine(mercator0, mercator1, p);
 			let dist = Vec2.distance(point.point, p);
 			if (!closest || dist < closest.dist)
 			{
