@@ -37,14 +37,20 @@ export default class OSMPathfinder
 	 * @param {OSMData} data 
 	 * @param {StreetPosition} from
 	 * @param {StreetPosition} to
-	 * @param {WeightingFunction} calculateWeighting 
-	 * @param {EstimatedSpeedFunction} calculateSpeed
+	 * @param {{calculateWeighting?: WeightingFunction, calculateSpeed?: EstimatedSpeedFunction, restrictions?: boolean, turnAround?: boolean}} arg3
 	 */
-	constructor(data, from, to, calculateWeighting = () => 1, calculateSpeed = calculateWeighting)
+	constructor(data, from, to, {
+		calculateWeighting = () => 1,
+		calculateSpeed = (street, forwards) => 1 / calculateWeighting(street, forwards),
+		restrictions = false,
+		turnAround = true } = {})
 	{
 		this.data = data;
 		this.from = from;
 		this.to = to;
+
+		this.restrictions = restrictions;
+		this.turnAround = turnAround;
 
 		this.calculateWeighting = calculateWeighting;
 		this.calculateSpeed = calculateSpeed;
