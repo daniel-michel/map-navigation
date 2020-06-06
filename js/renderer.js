@@ -16,7 +16,7 @@ export default class Renderer
 		this.cameraPosition = new Vec2();
 		this.threeDimensional = true;
 		this.isThreeDimensional = false;
-		this.scale = this.canvas.width * 6400;
+		this.scale = this.canvas.width * 1;
 		this.setFov(75);
 		//this.rotation = new Vec3(-45 / 180 * Math.PI, 0, 0);
 		this.rotation = new Vec3(0, 0, 0);

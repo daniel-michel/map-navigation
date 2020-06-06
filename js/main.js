@@ -1,7 +1,7 @@
 import Rect, { RectsShape, RectGrid } from "./math/rect.js";
 import Vec2 from "./math/vec2.js";
 import OSMData from "./osm/data.js";
-import GeoPos, { MercatorPos } from "./math/pos.js";
+import GeoPos, { MercatorPos, MERCATOR_WORLD_SIZE, EARTH_RADIUS_AT_SEA_LEVEL, HALF_MERCATOR_WORLD_SIZE } from "./math/pos.js";
 import Renderer from "./renderer.js";
 import Input from "./input.js";
 import Loop from "./loop.js";
@@ -101,12 +101,12 @@ async function main()
 		console.warn("Error while pathfinding", e);
 		let cameraGeoCoord = GeoPos.fromMercatorProjection(renderer.cameraPosition);
 		//mapData.load(new Rect(cameraGeoCoord, new GeoPos(0.001, 0.001)));
-		fromCoord = cameraGeoCoord.copy().add(new GeoPos(Math.random() * 0.3, Math.random() * 0.3));
-		toCoord = cameraGeoCoord.copy().add(new GeoPos(Math.random() * 0.3, Math.random() * 0.3));
+		fromCoord = cameraGeoCoord.copy().add(new GeoPos(Math.random() * 0.2, Math.random() * 0.2));
+		toCoord = cameraGeoCoord.copy().add(new GeoPos(Math.random() * 0.2, Math.random() * 0.2));
 	}
-	let from = await mapData.getClosestStreet(fromCoord.getMercatorProjection(), 0.00001, true, DRIVEABLE_STREET_RULE);
+	let from = await mapData.getClosestStreet(fromCoord.getMercatorProjection(), 0.01, true, DRIVEABLE_STREET_RULE);
 	renderer.cameraPosition = from.getMercatorPos();
-	let to = await mapData.getClosestStreet(toCoord.getMercatorProjection(), 0.00001, true, DRIVEABLE_STREET_RULE);
+	let to = await mapData.getClosestStreet(toCoord.getMercatorProjection(), 0.01, true, DRIVEABLE_STREET_RULE);
 	console.log(from, to);
 
 	{
@@ -128,11 +128,18 @@ function resize()
 
 async function draw()
 {
-	renderer.lineWidth(0.0000005);
+	let mercatorStretchFactor = 1 / Math.cos(renderer.cameraPosition.y / MERCATOR_WORLD_SIZE * Math.PI);
+	let mercatorToMeter = EARTH_RADIUS_AT_SEA_LEVEL * Math.PI / HALF_MERCATOR_WORLD_SIZE * mercatorStretchFactor;
+	let meter = 1 / mercatorToMeter;
+	console.log(meter);
+
+	//renderer.lineWidth(1 * meter);
+	renderer.context.textAlign = "left";
+	renderer.context.textBaseline = "top";
 	renderer.context.lineCap = "round";
 	renderer.context.lineJoin = "round";
 	//let skipprecise = 1 / (renderer.scale / 20000000);
-	let skip = Math.max(1, Math.floor(1 / (renderer.scale / 20000000)));
+	let skip = Math.max(1, Math.floor(1 / (renderer.scale / (10 * MERCATOR_WORLD_SIZE))));
 	//let wholeWorld = new Rect(new GeoPos(0, 0), new GeoPos(90, 180));
 	//let streets = mapData.streets.get(wholeWorld);
 	//let streets = mapData.streets.get(new Rect(GeoPos.fromMercatorProjection(renderer.cameraPosition), new GeoPos(0.025, 0.025)));
@@ -147,7 +154,7 @@ async function draw()
 			let mercator = street.geoCoordinates[index].getMercatorProjection();
 			renderer.lineTo(mercator);
 		}
-		renderer.lineWidth(street.matchesRules() ? 0.0000002 : 0.0000001).stroke(street.matchesRules() ? "hsla(0, 0%, 100%, 0.8)" : "hsla(0, 0%, 100%, 0.2)");
+		renderer.lineWidth(street.matchesRules() ? 4 * meter : 1 * meter).stroke(street.matchesRules() ? "hsla(0, 0%, 100%, 0.8)" : "hsla(0, 0%, 100%, 0.2)");
 		/* let positions = street.geoCoordinates.map(geocoord => geocoord.getMercatorProjection());
 		positions = positions.filter((point, i) => i % skip === 0 || i === positions.length - 1);
 		renderer.path(positions).lineWidth(street.matchesRules() ? 0.0000005 : 0.00000025).stroke(street.matchesRules() ? "hsla(0, 0%, 100%, 0.8)" : "hsla(0, 0%, 100%, 0.2)"); */
@@ -156,18 +163,18 @@ async function draw()
 	if (path)
 	{
 		let positions = path.getGeoCoordinates().map(geo => geo.getMercatorProjection());
-		renderer.path(positions).lineWidth(0.0000005).stroke("hsl(250, 100%, 60%)");
+		renderer.path(positions).lineWidth(5 * meter).stroke("hsl(250, 100%, 60%)");
 	}
 
 	if (mouse_pos)
 	{
-		let closest = await mapData.getClosestStreet(new MercatorPos(renderer.project_back_2d(mouse_pos)), 0.00001, false);
+		let closest = await mapData.getClosestStreet(new MercatorPos(renderer.project_back_2d(mouse_pos)), 100 * meter, false);
 		//console.log(closest);
 		if (closest)
 		{
 			let positions = closest.street.geoCoordinates.map(geocoord => geocoord.getMercatorProjection());
-			renderer.path(positions).lineWidth(0.0000005).stroke("hsla(0, 100%, 58%, 0.8)");
-			renderer.path([renderer.project_back_2d(mouse_pos), closest.getMercatorPos()]).lineWidth(0.0000002).stroke("hsla(270, 100%, 60%, 0.7)");
+			renderer.path(positions).lineWidth(5 * meter).stroke("hsla(0, 100%, 58%, 0.8)");
+			renderer.path([renderer.project_back_2d(mouse_pos), closest.getMercatorPos()]).lineWidth(2 * meter).stroke("hsla(270, 100%, 60%, 0.7)");
 			let font_size = 30;
 			renderer.context.font = (font_size * 0.8) + "px Arial";
 			renderer.context.fillText(`length = ${closest.street.getLength()}`, 50, font_size * 1 + 0 * font_size * 0.8);
@@ -191,6 +198,18 @@ async function draw()
 				//renderer.context.fillText(`${name} = ${value}`, 110, font_size * 6 + i * font_size * 0.8 + 5);
 				i++;
 			}
+			for (const res of closest.street.restrictions)
+			{
+				renderer.context.fillText(`restriction`, 50, font_size * 1 + i * font_size * 0.8);
+				i++;
+				console.log(res.element);
+				for (const name in res.element.tags)
+				{
+					let value = res.element.tags[name];
+					renderer.context.fillText(`    ${name} = ${value}`, 50, font_size * 1 + i * font_size * 0.8);
+					i++;
+		}
+	}
 		}
 	}
 
@@ -199,6 +218,27 @@ async function draw()
 	renderer.context.font = "50px Arial";
 	renderer.fillColor("white");
 	renderer.context.fillText(skip + "", 0, 0);
+
+
+	let bottomRight = new MercatorPos(renderer.project_back_2d(new Vec2(canvas.width - 10, canvas.height - 10)));
+
+	let pixelsToMetersFactor = 1 / (meter * renderer.scale);
+	let minScaleSize = 200 * devicePixelRatio;
+	let minScaleMeters = minScaleSize * pixelsToMetersFactor;
+	let scaleMeters = 10 ** Math.ceil(Math.log10(minScaleMeters));
+	if (scaleMeters / 5 >= minScaleMeters)
+		scaleMeters /= 5;
+	else if (scaleMeters / 2.5 >= minScaleMeters)
+		scaleMeters /= 2.5;
+	else if (scaleMeters / 2 >= minScaleMeters)
+		scaleMeters /= 2;
+	//let scale_size = scale_meters;
+	let metersToLeft = new MercatorPos(-scaleMeters * meter, 0).add(bottomRight);
+	renderer.path([bottomRight, metersToLeft]).lineWidth(5 / renderer.scale).stroke("white");
+	renderer.context.font = 30 * devicePixelRatio + "px Arial";
+	renderer.context.textAlign = "right";
+	renderer.context.textBaseline = "bottom";
+	renderer.context.fillText((scaleMeters >= 1000 ? scaleMeters / 1000 + " k" : scaleMeters + " ") + "m", canvas.width - 15, canvas.height - 15);
 }
 
 
@@ -208,25 +248,20 @@ async function draw()
 
 let mouse_pressed = false;
 let shift_pressed = false;
-//let hold_location = new Vec2();
 
 window.onmousedown = e =>
 {
 	mouse_pos = new Vec2(e.clientX, e.clientY);
-	//let p = renderer.project_to_world_space(mouse_pos);
 	if (e.button === 0)
 	{
-		//console.log(e);
 		mouse_pressed = true;
 		shift_pressed = e.shiftKey;
-		//hold_location = p;
 	}
-	/* else if (e.button === 1)
+	else if (e.button === 1)
 	{
-		p.lat = Math.floor(p.lat / street_network.grid_size);
-		p.lon = Math.floor(p.lon / street_network.grid_size);
-		street_network.load_square(p.lat, p.lon);
-	} */
+		let mousePosMercator = new MercatorPos(renderer.project_back_2d(mouse_pos));
+		mapData.load(new Rect(mousePosMercator.getGeographicCoordinates()));
+	}
 };
 window.onmouseup = e =>
 {
@@ -246,37 +281,16 @@ window.onmousemove = e =>
 	}
 	else
 	{
-		// pos = ?
-		// lat, lon, mouse_pos
-		// 
-		/* pos.lat += hold_location.lat - p.lat;
-		pos.lon += hold_location.lon - p.lon; */
-		//let pos = renderer.project_to_world_space(mouse_pos);
-		//let latitude_factor = Math.cos(pos.lat / 180 * Math.PI);
 		let movement = new Vec2(e.movementX / renderer.scale, e.movementY / renderer.scale);
 		movement = new Vec2(Math.cos(-renderer.rotation.z) * movement.x - Math.sin(-renderer.rotation.z) * movement.y, Math.sin(-renderer.rotation.z) * movement.x + Math.cos(-renderer.rotation.z) * movement.y);
 		renderer.cameraPosition.y += movement.y;
 		renderer.cameraPosition.x -= movement.x;
-
-		/* map_renderer.center_location.lat += e.movementY * latitude_factor;
-		map_renderer.center_location.lon -= e.movementX; */
 	}
-	//draw();
 };
-let warning_shown = false;
 window.onwheel = e =>
 {
 	if (e.ctrlKey)
 	{
-		//e.preventDefault();
-		if (!warning_shown)
-		{
-			alert("This is not a good idea!");
-			warning_shown = true;
-		}
-
-		let pos = renderer.cameraPosition;
-		//let latitude_factor = Math.cos(pos.lat / 180 * Math.PI);
 		renderer.cameraPosition.y -= e.deltaY / renderer.scale;
 		renderer.cameraPosition.x += e.deltaX / renderer.scale;
 	}
@@ -288,20 +302,9 @@ window.onwheel = e =>
 		else
 			renderer.scale *= 1 + zoom;
 	}
-	//draw();
 };
-let show_info = true;
 window.onkeydown = async e =>
 {
-	/* if (e.key === "Enter")
-	{
-		load_current_region();
-	}
-	else if (e.key === "p")
-	{
-		jump_to_device_location();
-	}
-	else  */
 	if (e.key === "g")
 	{
 		let geopos = GeoPos.fromMercatorProjection(new MercatorPos(renderer.cameraPosition));
@@ -309,48 +312,6 @@ window.onkeydown = async e =>
 		console.log(url);
 		open(url, "_blank");
 	}
-	/* else if (e.key === "i")
-	{
-		show_info = !show_info;
-		renderer.show_info = show_info;
-	}
-	else if (e.key === "y")
-	{
-		if (astar)
-		{
-			let pos = new Position(renderer.project_to_world_space(mouse_pos));
-			await street_network.load_square_with(pos);
-			astar.update_start(pos);
-			//let res = street_network.closest_street(pos);
-			//if (res)
-			//{
-			//	astar.a = res.street.jun_a;
-			//	console.log(res.street.jun_a);
-			//}
-		}
-	}
-	else if (e.key === "x")
-	{
-		if (astar)
-		{
-			let pos = new Position(renderer.project_to_world_space(mouse_pos));
-			await street_network.load_square_with(pos);
-			astar.update_goal(pos);
-			//let res = street_network.closest_street(pos);
-			//if (res)
-			//{
-			//	astar.b = res.street.jun_a;
-			//}
-		}
-	}
-	else if (e.key === "c")
-	{
-		if (astar)
-		{
-			//astar.reset();
-			astar.search();
-		}
-	} */
 	else if (e.key === "2")
 	{
 		renderer.rotation.x = 0;

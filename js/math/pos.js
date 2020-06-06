@@ -2,7 +2,10 @@ import Vec3 from "./vec3.js";
 import Rect from "./rect.js";
 import Vec2 from "./vec2.js";
 
-const EARTH_RADIUS_AT_SEA_LEVEL = 6378137;
+export const MERCATOR_WORLD_SIZE = 2000;
+export const HALF_MERCATOR_WORLD_SIZE = MERCATOR_WORLD_SIZE / 2;
+
+export const EARTH_RADIUS_AT_SEA_LEVEL = 6378137;
 const DEGREE_TO_RAD = Math.PI / 180;
 
 export default class GeoPos extends Vec3
@@ -127,23 +130,23 @@ export default class GeoPos extends Vec3
 	static latToMercatorProjection(lat)
 	{
 		let mercN = Math.log(Math.tan((Math.PI / 4) + ((lat / 180 * Math.PI) / 2)));
-		let y = mercN / (2 * Math.PI);
+		let y = mercN / (2 * Math.PI) * HALF_MERCATOR_WORLD_SIZE;
 		return y;
 	}
 	static lonToMercatorProjection(lon)
 	{
-		let x = lon / 360;
+		let x = lon / 360 * HALF_MERCATOR_WORLD_SIZE;
 		return x;
 	}
 	static latFromMercatorProjection(y)
 	{
-		let mercN = (y * 2 * Math.PI);
+		let mercN = (y / HALF_MERCATOR_WORLD_SIZE * 2 * Math.PI);
 		let lat = (Math.atan(Math.E ** mercN) - Math.PI / 4) * 2 * 180 / Math.PI;
 		return lat;
 	}
 	static lonFromMercatorProjection(x)
 	{
-		let lon = x * 360;
+		let lon = x / HALF_MERCATOR_WORLD_SIZE * 360;
 		return lon;
 	}
 }

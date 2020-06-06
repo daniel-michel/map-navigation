@@ -5,10 +5,8 @@ import SortedArrayUniqueValues from "../sorted_array_unique_values.js";
 import OSMRequest from "./request.js";
 import Street, { StreetPosition } from "./street.js";
 import Vec2 from "../math/vec2.js";
-import Vec3 from "../math/vec3.js";
 import OSMNode from "./node.js";
 import OSMRelation from "./relation.js";
-import OSMElement from "./osm_element.js";
 import OSMWay from "./way.js";
 import OSMRestrictionRelation from "./restriction.js";
 
