@@ -172,9 +172,11 @@ export default class OSMData
 		}
 		for (let restriction of restrictions)
 		{
-			let elements = Object.values(restriction.getMembers());
-			elements = elements.filter(elem => elem);
-			elements.forEach(elem => elem.restrictions.push(restriction));
+			let elements = restriction.getMembers();
+			if (elements.via)
+				elements.via.restrictions.push(restriction);
+			if (elements.from)
+				elements.from.restrictions.push(restriction);
 		}
 	}
 	/**

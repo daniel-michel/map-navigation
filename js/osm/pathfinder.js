@@ -135,6 +135,9 @@ export default class OSMPathfinder
 			{
 				streets = await node.getStreets();
 				additionalWaypoints = this.streetPositions.filter(pos => streets.includes(pos.street));
+				let restrictions = node.restrictions;
+				if (this.restrictions && from.street)
+					additionalWaypoints = additionalWaypoints.filter(streetPos => restrictions.every(res => !res.forbids(from.street, node, streetPos.street)));
 			}
 			else
 			{

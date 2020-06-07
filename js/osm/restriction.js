@@ -1,7 +1,6 @@
 import OSMRelation from "./relation.js";
 import OSMData from "./data.js";
 import OSMElement from "./osm_element.js";
-import Street from "./street.js";
 
 
 export default class OSMRestrictionRelation extends OSMRelation
@@ -41,10 +40,9 @@ export default class OSMRestrictionRelation extends OSMRelation
 	forbids(from, via, to)
 	{
 		let memebers = this.getMembers();
+		console.log({ from, via, to }, memebers);
 		if (from !== memebers.from || via !== memebers.via)
 			return false;
-		if (!(memebers.from instanceof Street) || !(memebers.to instanceof Street))
-			return false;
-		return (memebers.from === from && memebers.to === to) !== /only/.test(this.element.tags.restriction);
+		return (memebers.to === to) !== /only/.test(this.element.tags.restriction);
 	}
 }
