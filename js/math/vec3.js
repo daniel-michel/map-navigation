@@ -56,14 +56,16 @@ export default class Vec3 extends Vec2
 	{
 		this.x += v.x;
 		this.y += v.y;
-		this.z += v.z;
+		if (v instanceof Vec3)
+			this.z += v.z;
 		return this;
 	}
 	subtract(v)
 	{
 		this.x -= v.x;
 		this.y -= v.y;
-		this.z -= v.z;
+		if (v instanceof Vec3)
+			this.z -= v.z;
 		return this;
 	}
 

@@ -15,10 +15,17 @@ export default class Mat2x2
 		}
 	}
 
+	/**
+	 * 
+	 * @template {Vec2|Mat2x2} T
+	 * @param {Mat2x2} m 
+	 * @param {T} v 
+	 * @returns {T}
+	 */
 	static multiply(m, v)
 	{
 		if (v instanceof Vec2)
-			return new Vec2(m.m[0][0] * v.x + m.m[0][1] * v.y, m.m[1][0] * v.x + m.m[1][1] * v.y)
+			return new Vec2(m.m[0][0] * v.x + m.m[0][1] * v.y, m.m[1][0] * v.x + m.m[1][1] * v.y);
 		else if (v instanceof Mat2x2)
 		{
 			let result = [];
@@ -32,7 +39,7 @@ export default class Mat2x2
 						result[i][j] += m.m[i][k] * v.m[k][j];
 				}
 			}
-			return new Mat2x2(result)
+			return new Mat2x2(result);
 		}
 	}
 

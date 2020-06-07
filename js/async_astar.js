@@ -40,7 +40,10 @@ export default class AStar
 		 * @type {SortedArray<Waypoint>}
 		 */
 		this.openList = new SortedArray(elem => elem.fcost);
-		//this.closedList = [];
+		/**
+		 * @type {Waypoint[]}
+		 */
+		this.closedList = [];
 		this.from = from;
 		this.to = to;
 		this.accuracy = 1;
@@ -54,14 +57,8 @@ export default class AStar
 		this.from.gcost = 0;
 		this.from.fcost = this.from.gcost + this.from.hcost;
 		this.openList.add(this.from);
-		/**
-		 * @type {Array<Waypoint>}
-		 */
-		//this.closedList = new SortedArray(elem => elem.fcost);
-		this.closedList = [];
 		while (true)
 		{
-			//await new Promise(r => setTimeout(r, 10));
 			let waypoint = this.openList.shift();
 			if (!waypoint)
 				return undefined;

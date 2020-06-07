@@ -2,6 +2,7 @@ import Vec2 from "./math/vec2.js";
 import Vec3 from "./math/vec3.js";
 import Mat3x3 from "./math/mat3x3.js";
 import Rect from "./math/rect.js";
+import Mat2x2 from "./math/mat2x2.js";
 
 export default class Renderer
 {
@@ -50,7 +51,7 @@ export default class Renderer
 	 */
 	project_3d(point)
 	{
-		let position = point;
+		let position = point.copy();
 		position.subtract(this.cameraPosition).multiply(this.scale);
 		/* position.x = (position.x - this.cameraPosition.x) * this.scale;
 		position.y = (position.y - this.cameraPosition.y) * -this.scale; */
@@ -141,11 +142,53 @@ export default class Renderer
 	}
 	/**
 	 * 
-	 * @param {number} w 
+	 * @param {Vec2[]} path 
+	 * @param {number} width
+	 * @param {number} minWidthInPixel
 	 */
-	lineWidth(w)
+	drawPathWithDirectionArrows(path, width, minWidthInPixel)
 	{
-		this.context.lineWidth = w * this.scale;
+		let pixelWidth = width * this.scale;
+		if (minWidthInPixel && minWidthInPixel > pixelWidth)
+			pixelWidth = minWidthInPixel;
+		this.beginPath();
+		let d = Infinity;
+		if (path.length > 0)
+			this.lineTo(path[0]);
+		for (let i = 1; i < path.length; i++)
+		{
+			let prev = path[i - 1];
+			let curr = path[i];
+			this.lineTo(curr);
+			let diff = curr.copy().subtract(prev);
+			d += diff.length / pixelWidth * this.scale;
+			if (d > 8)
+			{
+				d = 0;
+				let tocurr = diff.normalize().multiply(pixelWidth / this.scale * 3);
+				let leftRotated = Mat2x2.multiply(Mat2x2.create_rotation_matrix(135 / 180 * Math.PI), tocurr);
+				let rightRotated = Mat2x2.multiply(Mat2x2.create_rotation_matrix(-135 / 180 * Math.PI), tocurr);
+				this.lineTo(curr.copy().add(leftRotated));
+				this.lineTo(curr);
+				this.lineTo(curr.copy().add(rightRotated));
+				this.lineTo(curr);
+			}
+		}
+		this.context.lineWidth = pixelWidth;
+		this.context.stroke();
+		return this;
+	}
+	/**
+	 * 
+	 * @param {number} w 
+	 * @param {number} minWidthInPixel
+	 */
+	lineWidth(w, minWidthInPixel = undefined)
+	{
+		let pixelWidth = w * this.scale;
+		if (minWidthInPixel && minWidthInPixel > pixelWidth)
+			pixelWidth = minWidthInPixel;
+		this.context.lineWidth = pixelWidth;
 		return this;
 	}
 	/**

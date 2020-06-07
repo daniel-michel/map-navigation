@@ -5,9 +5,8 @@ import GeoPos, { MercatorPos, MERCATOR_WORLD_SIZE, EARTH_RADIUS_AT_SEA_LEVEL, HA
 import Renderer from "./renderer.js";
 import Input from "./input.js";
 import Loop from "./loop.js";
-import Vec3 from "./math/vec3.js";
 import OSMPathfinder from "./osm/pathfinder.js";
-import { StreetSection, StreetPath, DRIVEABLE_STREET_RULE } from "./osm/street.js";
+import { StreetPath, DRIVEABLE_STREET_RULE } from "./osm/street.js";
 
 /**
  * @type {HTMLCanvasElement}
@@ -66,8 +65,6 @@ async function main()
 	{
 		if (e.n === 1 || (e.n === 2 && e.type === "scale"))
 		{
-			let pos = renderer.cameraPosition;
-			//let latitude_factor = Math.cos(pos.y / 180 * Math.PI);
 			let movement = new Vec2(e.movement.x * devicePixelRatio / renderer.scale, e.movement.y * devicePixelRatio / renderer.scale);
 			movement = new Vec2(Math.cos(-renderer.rotation.z) * movement.x - Math.sin(-renderer.rotation.z) * movement.y, Math.sin(-renderer.rotation.z) * movement.x + Math.cos(-renderer.rotation.z) * movement.y);
 			renderer.cameraPosition.y += movement.y;
@@ -89,8 +86,6 @@ async function main()
 			renderer.scale *= e.scale;
 		}
 	});
-
-	//draw();
 	let fromCoord;
 	let toCoord;
 	try
@@ -103,7 +98,6 @@ async function main()
 	{
 		console.warn("Error while pathfinding", e);
 		let cameraGeoCoord = GeoPos.fromMercatorProjection(renderer.cameraPosition);
-		//mapData.load(new Rect(cameraGeoCoord, new GeoPos(0.001, 0.001)));
 		fromCoord = cameraGeoCoord.copy().add(new GeoPos(Math.random() * 0.2, Math.random() * 0.2));
 		toCoord = cameraGeoCoord.copy().add(new GeoPos(Math.random() * 0.2, Math.random() * 0.2));
 	}
@@ -135,16 +129,11 @@ async function draw()
 	let mercatorToMeter = EARTH_RADIUS_AT_SEA_LEVEL * Math.PI / HALF_MERCATOR_WORLD_SIZE * mercatorStretchFactor;
 	let meter = 1 / mercatorToMeter;
 
-	//renderer.lineWidth(1 * meter);
 	renderer.context.textAlign = "left";
 	renderer.context.textBaseline = "top";
 	renderer.context.lineCap = "round";
 	renderer.context.lineJoin = "round";
-	//let skipprecise = 1 / (renderer.scale / 20000000);
 	let skip = Math.max(1, Math.floor(1 / (renderer.scale / (10 * MERCATOR_WORLD_SIZE))));
-	//let wholeWorld = new Rect(new GeoPos(0, 0), new GeoPos(90, 180));
-	//let streets = mapData.streets.get(wholeWorld);
-	//let streets = mapData.streets.get(new Rect(GeoPos.fromMercatorProjection(renderer.cameraPosition), new GeoPos(0.025, 0.025)));
 	let streets = mapData.streets.get(GeoPos.rectFromMercatorProjection(renderer.getCameraArea()));
 	renderer.startFrame();
 	for (let street of streets)
@@ -156,55 +145,38 @@ async function draw()
 			let mercator = street.geoCoordinates[index].getMercatorProjection();
 			renderer.lineTo(mercator);
 		}
-		renderer.lineWidth(street.matchesRules() ? 4 * meter : 1 * meter).stroke(street.matchesRules() ? "hsla(0, 0%, 100%, 0.8)" : "hsla(0, 0%, 100%, 0.2)");
-		/* let positions = street.geoCoordinates.map(geocoord => geocoord.getMercatorProjection());
-		positions = positions.filter((point, i) => i % skip === 0 || i === positions.length - 1);
-		renderer.path(positions).lineWidth(street.matchesRules() ? 0.0000005 : 0.00000025).stroke(street.matchesRules() ? "hsla(0, 0%, 100%, 0.8)" : "hsla(0, 0%, 100%, 0.2)"); */
+		renderer.lineWidth(street.matchesRules() ? 4 * meter : 1 * meter, 1).stroke(street.matchesRules() ? "hsla(0, 0%, 100%, 0.8)" : "hsla(0, 0%, 100%, 0.2)");
 	}
 
 	if (path)
 	{
 		let positions = path.getGeoCoordinates().map(geo => geo.getMercatorProjection());
-		renderer.path(positions).lineWidth(5 * meter).stroke("hsl(230, 100%, 60%)");
+		renderer.strokeColor("hsl(230, 100%, 60%)").drawPathWithDirectionArrows(positions, 5 * meter, 5);
 	}
 
 	if (mouse_pos)
 	{
 		let closest = await mapData.getClosestStreet(new MercatorPos(renderer.project_back_2d(mouse_pos)), 100 * meter, false);
-		//console.log(closest);
 		if (closest)
 		{
 			let positions = closest.street.geoCoordinates.map(geocoord => geocoord.getMercatorProjection());
-			renderer.path(positions).lineWidth(5 * meter).stroke("hsla(0, 100%, 58%, 0.8)");
-			renderer.path([renderer.project_back_2d(mouse_pos), closest.getMercatorPos()]).lineWidth(2 * meter).stroke("hsla(270, 100%, 60%, 0.7)");
+			renderer.strokeColor("hsla(0, 100%, 58%, 0.8)").drawPathWithDirectionArrows(positions, 5 * meter, 5);
+			renderer.path([renderer.project_back_2d(mouse_pos), closest.getMercatorPos()]).lineWidth(2 * meter, 2).stroke("hsla(270, 100%, 60%, 0.7)");
 			let font_size = 30;
 			renderer.context.font = (font_size * 0.8) + "px Arial";
 			renderer.context.fillText(`length = ${closest.street.getLength()}`, 50, font_size * 1 + 0 * font_size * 0.8);
 			renderer.context.fillText(`weight = ${weightingFunction(closest.street, true)}`, 50, font_size * 1 + 1 * font_size * 0.8);
-			/* let prevJunction = (await closest.getNextJunctions()).previous;
-			if (prevJunction)
-			{
-				//let section = (await prevJunction.node.getConnectionsToNeighbors()).filter(connection => connection.street === closest.street)[0]?.section;
-				let section = prevJunction.section;
-				if (section)
-				{
-					renderer.path(section.getGeoCoordinates().map(geoPos => geoPos.getMercatorProjection())).lineWidth(0.0000005).stroke("hsla(60, 100%, 58%, 0.8)");
-					renderer.context.fillText(`length = ${section.getLength()}`, 50, font_size * 1 + 1 * font_size * 0.8);
-				}
-			} */
 			let i = 2;
 			for (const name in closest.street.element.tags)
 			{
 				let value = closest.street.element.tags[name];
 				renderer.context.fillText(`${name} = ${value}`, 50, font_size * 1 + i * font_size * 0.8);
-				//renderer.context.fillText(`${name} = ${value}`, 110, font_size * 6 + i * font_size * 0.8 + 5);
 				i++;
 			}
 			for (const res of closest.street.restrictions)
 			{
 				renderer.context.fillText(`restriction`, 50, font_size * 1 + i * font_size * 0.8);
 				i++;
-				console.log(res.element);
 				for (const name in res.element.tags)
 				{
 					let value = res.element.tags[name];
@@ -214,12 +186,6 @@ async function draw()
 			}
 		}
 	}
-
-
-	renderer.context.textBaseline = "top";
-	renderer.context.font = "50px Arial";
-	renderer.fillColor("white");
-	renderer.context.fillText(skip + "", 0, 0);
 
 
 	let bottomRight = new MercatorPos(renderer.project_back_2d(new Vec2(canvas.width - 10, canvas.height - 10)));
@@ -234,12 +200,12 @@ async function draw()
 		scaleMeters /= 2.5;
 	else if (scaleMeters / 2 >= minScaleMeters)
 		scaleMeters /= 2;
-	//let scale_size = scale_meters;
 	let metersToLeft = new MercatorPos(-scaleMeters * meter, 0).add(bottomRight);
 	renderer.path([bottomRight, metersToLeft]).lineWidth(5 / renderer.scale).stroke("white");
 	renderer.context.font = 30 * devicePixelRatio + "px Arial";
 	renderer.context.textAlign = "right";
 	renderer.context.textBaseline = "bottom";
+	renderer.fillColor("white");
 	renderer.context.fillText((scaleMeters >= 1000 ? scaleMeters / 1000 + " k" : scaleMeters + " ") + "m", canvas.width - 15, canvas.height - 15);
 }
 
