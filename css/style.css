@@ -28,16 +28,16 @@ html
 
 a
 {
-	color: rgb(88, 146, 255);
+	color: hsl(219, 100%, 67%);
 	text-shadow: 0em 0em 0.3em rgba(0, 0, 0, 0.397);
 	transition-duration: 200ms;
 }
 a:visited
 {
-	color: rgb(88, 146, 255);
+	color: hsl(219, 100%, 67%);
 }
 a:hover
 {
-	color: rgb(119, 167, 255);
+	color: hsl(219, 100%, 73%);
 	text-shadow: 0.2em 0.2em 0.3em black;
 }

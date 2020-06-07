@@ -39,14 +39,17 @@ let mouse_pos = new Vec2();
  */
 let weightingFunction = (street, forwards) =>
 {
+	const speedDistance = 0.4;
 	if (!street.matchesRules())
+		return -1;
+	if ((street.element?.tags?.oneway === "yes" && !forwards) || (street.element?.tags?.oneway === "-1" && forwards))
 		return -1;
 	let maxspeed = +street.element?.tags?.maxspeed;
 	if (isNaN(maxspeed))
 		maxspeed = +street.element?.tags?.["maxspeed:" + (forwards ? "forward" : "backward")];
 	if (isNaN(maxspeed))
-		return 130 / 30;
-	return 130 / maxspeed;
+		return 130 / 30 * speedDistance + (1 - speedDistance);
+	return 130 / maxspeed * speedDistance + (1 - speedDistance);
 };
 
 window.onload = main;
@@ -131,7 +134,6 @@ async function draw()
 	let mercatorStretchFactor = 1 / Math.cos(renderer.cameraPosition.y / MERCATOR_WORLD_SIZE * Math.PI);
 	let mercatorToMeter = EARTH_RADIUS_AT_SEA_LEVEL * Math.PI / HALF_MERCATOR_WORLD_SIZE * mercatorStretchFactor;
 	let meter = 1 / mercatorToMeter;
-	console.log(meter);
 
 	//renderer.lineWidth(1 * meter);
 	renderer.context.textAlign = "left";
@@ -163,7 +165,7 @@ async function draw()
 	if (path)
 	{
 		let positions = path.getGeoCoordinates().map(geo => geo.getMercatorProjection());
-		renderer.path(positions).lineWidth(5 * meter).stroke("hsl(250, 100%, 60%)");
+		renderer.path(positions).lineWidth(5 * meter).stroke("hsl(230, 100%, 60%)");
 	}
 
 	if (mouse_pos)
@@ -208,8 +210,8 @@ async function draw()
 					let value = res.element.tags[name];
 					renderer.context.fillText(`    ${name} = ${value}`, 50, font_size * 1 + i * font_size * 0.8);
 					i++;
-		}
-	}
+				}
+			}
 		}
 	}
 
