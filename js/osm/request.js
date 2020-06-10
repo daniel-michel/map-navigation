@@ -2,8 +2,8 @@ export default class OSMRequest
 {
 	constructor()
 	{
-		this.baseUrl = "https://overpass-api.de/api/";
-		//this.baseUrl = "https://overpass.kumi.systems/api/";
+		//this.baseUrl = "https://overpass-api.de/api/";
+		this.baseUrl = "https://overpass.kumi.systems/api/";
 		this.statusUrl = this.baseUrl + "status";
 		this.apiUrl = this.baseUrl + "interpreter?data=";
 		this.minTimeout = 100;
@@ -17,72 +17,12 @@ export default class OSMRequest
 		this.waitingForFreeSlot = undefined;
 	}
 
-	async freeSlot()
-	{
-		let callbackobj = {};
-		if (!this.waitingForFreeSlot)
-		{
-			this.waitingForFreeSlot = callbackobj;
-		}
-		else
-		{
-			let obj = this.waitingForFreeSlot;
-			this.waitingForFreeSlot = callbackobj;
-			await new Promise(r => obj.callback = r);
-			await wait(1000);
-		}
-
-		let text;
-		let waitTime = 0;
-		do
-		{
-			waitTime = 0;
-			try
-			{
-				let status_res = await fetch(this.statusUrl + "?ran=" + Math.floor(Math.random() * (36 ** 10)).toString(36) + "_" + Date.now());
-				text = await status_res.text();
-				if (/slots available now/.test(text))
-					waitTime = -1;
-				else
-				{
-					let times = [];
-					let regex = /in (\d+) seconds/g;
-					let res;
-					while (res = regex.exec(text))
-					{
-						times.push(+res[1] * 1000 + 500);
-					}
-					if (times.length > 0)
-						waitTime = Math.min(...times);
-					if (!/\:\r?\n$/.test(text))
-						waitTime = 1000;
-				}
-			}
-			catch (e)
-			{
-				console.warn("Error while waiting for free slot:", e);
-			}
-			if (waitTime > 0)
-				await wait(waitTime);
-			else if (waitTime === 0)
-				await wait(5000);
-		} while (waitTime >= 0);
-
-		if (callbackobj.callback)
-			callbackobj.callback();
-		else
-			this.waitingForFreeSlot = undefined;
-	}
-
 	async request(code)
 	{
 		let startTime = performance.now();
 		while (true)
 		{
 			let timer_id = Math.floor(Math.random() * 0x1000000).toString(16);
-			console.time("waiting for free slot " + timer_id);
-			await this.freeSlot();
-			console.timeEnd("waiting for free slot " + timer_id);
 			try
 			{
 				console.time("fetch time " + timer_id);
