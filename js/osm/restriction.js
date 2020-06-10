@@ -27,7 +27,7 @@ export default class OSMRestrictionRelation extends OSMRelation
 		{
 			let mem = this.element.members.find(member => member.role === role);
 			if (mem?.ref)
-				obj[role] = mem.type === "node" ? this.data.nodes.find({ element: { id: mem.ref } }) : this.data.ways.find({ element: { id: mem.ref } });
+				obj[role] = mem.type === "node" ? this.data.nodes[mem.ref] : this.data.ways[mem.ref];
 		}
 		return obj;
 	}

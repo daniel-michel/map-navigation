@@ -1,7 +1,6 @@
 import QuadTree from "../math/quad_tree.js";
 import Rect from "../math/rect.js";
 import GeoPos, { MercatorPos } from "../math/pos.js";
-import SortedArrayUniqueValues from "../sorted_array_unique_values.js";
 import OSMRequest from "./request.js";
 import Street, { StreetPosition } from "./street.js";
 import Vec2 from "../math/vec2.js";
@@ -9,7 +8,6 @@ import OSMNode from "./node.js";
 import OSMRelation from "./relation.js";
 import OSMWay from "./way.js";
 import OSMRestrictionRelation from "./restriction.js";
-import AVLTree from "../avl_tree.js";
 
 export default class OSMData
 {
@@ -20,21 +18,11 @@ export default class OSMData
 		//this.grid_size = 0.2;
 		this.squares_loaded = [];
 
-
+		this.nodes = {};
+		this.ways = {};
+		this.relations = {};
 
 		let wholeWorld = new Rect(new GeoPos(0, 0), new GeoPos(90, 180));
-		/**
-		 * @type {AVLTree<{element: {id: number}}, OSMNode>}
-		 */
-		this.nodes = new AVLTree((a, b) => a.element.id - b.element.id);
-		/**
-		 * @type {AVLTree<{element: {id: number}}, OSMWay>}
-		 */
-		this.ways = new AVLTree((a, b) => a.element.id - b.element.id);
-		/**
-		 * @type {AVLTree<{element: {id: number}}, OSMRelation>}
-		 */
-		this.relations = new AVLTree((a, b) => a.element.id - b.element.id);
 		/**
 		 * @type {QuadTree<Street>}
 		 */
@@ -146,15 +134,37 @@ export default class OSMData
 	 */
 	addElements(elements)
 	{
-		//let newRawElements = this.rawElements.addAll(elements);
 		let nodes = elements.filter(elem => elem.type === "node").map(node => new OSMNode(node, this));
 		let ways = elements.filter(elem => elem.type === "way").map(way => way?.tags?.highway ? new Street(way, this) : new OSMWay(way, this));
 		let relations = elements.filter(elem => elem.type === "relation").map(relation => relation?.tags?.restriction ? new OSMRestrictionRelation(relation, this) : new OSMRelation(relation, this));
 
-		let newNodes = this.nodes.addAll(nodes);
-		let newWays = this.ways.addAll(ways);
-		let newRelations = this.relations.addAll(relations);
-		console.log(this.nodes, this.ways, this.relations);
+		let newNodes = [];
+		for (let node of nodes)
+		{
+			if (this.nodes[node.element.id] === undefined)
+			{
+				newNodes.push(node);
+				this.nodes[node.element.id] = node;
+			}
+		}
+		let newWays = [];
+		for (let way of ways)
+		{
+			if (this.ways[way.element.id] === undefined)
+			{
+				newWays.push(way);
+				this.ways[way.element.id] = way;
+			}
+		}
+		let newRelations = [];
+		for (let restriction of relations)
+		{
+			if (this.relations[restriction.element.id] === undefined)
+			{
+				newRelations.push(restriction);
+				this.relations[restriction.element.id] = restriction;
+			}
+		}
 		/**
 		 * @type {Street[]}
 		 */

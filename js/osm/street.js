@@ -480,7 +480,7 @@ export default class Street extends OSMWay
 	get nodes()
 	{
 		if (!this._nodes)
-			this._nodes = this.element.nodes.map(id => this.data.nodes.find({ element: { id } }));
+			this._nodes = this.element.nodes.map(id => this.data.nodes[id]);
 		return this._nodes;
 	}
 	get area()
