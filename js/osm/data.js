@@ -9,6 +9,7 @@ import OSMNode from "./node.js";
 import OSMRelation from "./relation.js";
 import OSMWay from "./way.js";
 import OSMRestrictionRelation from "./restriction.js";
+import AVLTree from "../avl_tree.js";
 
 export default class OSMData
 {
@@ -16,28 +17,24 @@ export default class OSMData
 	{
 		//this.grid_size = 0.05;
 		this.grid_size = 0.1;
+		//this.grid_size = 0.2;
 		this.squares_loaded = [];
 
 
 
 		let wholeWorld = new Rect(new GeoPos(0, 0), new GeoPos(90, 180));
-		///**
-		// * @private
-		// * @type {SortedArrayUniqueValues<OSMRawElement>}
-		// */
-		//this.rawElements = new SortedArrayUniqueValues(elem => elem.id);
 		/**
-		 * @type {SortedArrayUniqueValues<OSMNode>}
+		 * @type {AVLTree<{element: {id: number}}, OSMNode>}
 		 */
-		this.nodes = new SortedArrayUniqueValues(elem => elem.element.id);
+		this.nodes = new AVLTree((a, b) => a.element.id - b.element.id);
 		/**
-		 * @type {SortedArrayUniqueValues<OSMWay>}
+		 * @type {AVLTree<{element: {id: number}}, OSMWay>}
 		 */
-		this.ways = new SortedArrayUniqueValues(elem => elem.element.id);
+		this.ways = new AVLTree((a, b) => a.element.id - b.element.id);
 		/**
-		 * @type {SortedArrayUniqueValues<OSMRelation>}
+		 * @type {AVLTree<{element: {id: number}}, OSMRelation>}
 		 */
-		this.relations = new SortedArrayUniqueValues(elem => elem.element.id);
+		this.relations = new AVLTree((a, b) => a.element.id - b.element.id);
 		/**
 		 * @type {QuadTree<Street>}
 		 */
@@ -157,7 +154,7 @@ export default class OSMData
 		let newNodes = this.nodes.addAll(nodes);
 		let newWays = this.ways.addAll(ways);
 		let newRelations = this.relations.addAll(relations);
-
+		console.log(this.nodes, this.ways, this.relations);
 		/**
 		 * @type {Street[]}
 		 */

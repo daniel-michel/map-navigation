@@ -154,7 +154,7 @@ async function draw()
 	for (let street of streets)
 	{
 		let driveable = street.matchesRules();
-		if (!driveable && meter * mapRenderer.camera.scale < 0.1)
+		if (!driveable && meter * mapRenderer.camera.scale < 0.3)
 			continue;
 		mapRenderer.beginPath();
 		for (let i = 0; i < street.geoCoordinates.length + skip - 1; i += skip)
@@ -174,7 +174,7 @@ async function draw()
 
 	if (mouse_pos)
 	{
-		let closest = await mapData.getClosestStreet(new MercatorPos(mapRenderer.project_back_2d(mouse_pos)), 100 * meter, false);
+		let closest = await mapData.getClosestStreet(new MercatorPos(mapRenderer.project_back_2d(mouse_pos)), 1000 * meter, false);
 		if (closest)
 		{
 			let positions = closest.street.geoCoordinates.map(geocoord => geocoord.getMercatorProjection());
@@ -352,7 +352,7 @@ window.onkeydown = async e =>
 				let next = mercPath[1];
 				let diff = next.copy().subtract(curr);
 				let angle = Math.atan2(diff.y, diff.x) - Math.PI / 2;
-				await mapRenderer.animateTo({ position: curr, rotation: { x: -55 / 180 * Math.PI, z: angle }, scale: 30 * renderer.width, screenFocus: { y: -0.5 } }, 4000);
+				await mapRenderer.animateTo({ position: curr, rotation: { x: -55 / 180 * Math.PI, z: angle }, scale: 60 * renderer.height, screenFocus: { y: -0.5 } }, 4000);
 				await new Promise(r => setTimeout(r, 1000));
 			}
 			for (let i = 0; i < geoPath.length - 1; i++)
