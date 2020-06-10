@@ -156,7 +156,7 @@ export class MercatorPos extends Vec3
 {
 	/**
 	 * 
-	 * @param {number|Vec2} x 
+	 * @param {number|Vec2|Vec3} x 
 	 * @param {number} y 
 	 * @param {number} ele 
 	 */

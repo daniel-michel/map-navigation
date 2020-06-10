@@ -1,7 +1,4 @@
 import Vec2 from "./math/vec2.js";
-import Vec3 from "./math/vec3.js";
-import Mat3x3 from "./math/mat3x3.js";
-import Rect from "./math/rect.js";
 import Mat2x2 from "./math/mat2x2.js";
 
 export default class Renderer
@@ -14,78 +11,14 @@ export default class Renderer
 	{
 		this.canvas = canvas;
 		this.context = canvas.getContext("2d");
-		this.cameraPosition = new Vec2();
-		this.threeDimensional = true;
-		this.isThreeDimensional = false;
-		this.scale = this.canvas.width * 1;
-		this.setFov(75);
-		//this.rotation = new Vec3(-45 / 180 * Math.PI, 0, 0);
-		this.rotation = new Vec3(0, 0, 0);
-		this.rotation_matrix = Mat3x3.createRotationMatrix(0, 0, 0);
-		//this.center_projected = this.project(this.cameraPosition);
 	}
-	setFov(angle)
+	get width()
 	{
-		this.fov_factor = 1 / Math.atan(angle / 180 * Math.PI / 2);
-		//this.fov_scale_factor = this.canvas.width / 2 * this.fov_factor;
-		this.fovScaleFactor = this.canvas.height / 2 * this.fov_factor;
+		return this.canvas.width;
 	}
-	getCameraArea()
+	get height()
 	{
-		return new Rect(this.cameraPosition, new Vec2(this.canvas.width, this.canvas.height).multiply(0.5 / this.scale));
-	}
-	/**
-	 * 
-	 * @param {Vec2} point 
-	 */
-	project(point)
-	{
-		if (this.isThreeDimensional)
-			return this.project_3d(point);
-		else
-			return this.project_2d(point);
-	}
-	/**
-	 * 
-	 * @param {Vec2} point 
-	 */
-	project_3d(point)
-	{
-		let position = point.copy();
-		position.subtract(this.cameraPosition).multiply(this.scale);
-		/* position.x = (position.x - this.cameraPosition.x) * this.scale;
-		position.y = (position.y - this.cameraPosition.y) * -this.scale; */
-		position.y *= -1;
-		position.divide(this.fovScaleFactor);
-		let v3 = new Vec3(position);
-		let rotated = Mat3x3.multiply_vector(this.rotation_matrix, v3);
-		rotated.add(new Vec3(0, 0, 1));
-		//let rotated = v3;
-		let projected = rotated.vec2().divide(Math.max(rotated.z, 0.01)).multiply(this.fovScaleFactor);
-		projected.add(new Vec2(this.canvas.width, this.canvas.height).multiply(0.5));
-		/* projected.x += this.canvas.width / 2;
-		projected.y += this.canvas.height / 2; */
-		return projected;
-	}
-	/**
-	 * 
-	 * @param {Vec2} point 
-	 */
-	project_2d(point)
-	{
-		let p = point.copy().subtract(this.cameraPosition).multiply(this.scale);
-		p.y *= -1;
-		return p.add(new Vec2(this.canvas.width, this.canvas.height).multiply(0.5));
-	}
-	/**
-	 * 
-	 * @param {Vec2} point 
-	 */
-	project_back_2d(point)
-	{
-		let p = point.copy().subtract(new Vec2(this.canvas.width, this.canvas.height).multiply(0.5));
-		p.y *= -1;
-		return p.divide(this.scale).add(this.cameraPosition);
+		return this.canvas.height;
 	}
 	clear()
 	{
@@ -95,13 +28,6 @@ export default class Renderer
 	startFrame()
 	{
 		this.clear();
-		this.isThreeDimensional = this.threeDimensional && (this.rotation.x !== 0 || this.rotation.y !== 0 || this.rotation.z !== 0);;
-		//this.center_projected = this.center_location.project();
-		if (this.threeDimensional)
-		{
-			this.fovScaleFactor = this.canvas.height / 2 * this.fov_factor;
-			this.rotation_matrix = Mat3x3.createRotationMatrix(this.rotation.x, this.rotation.y, this.rotation.z);
-		}
 	}
 	/**
 	 * 
@@ -110,9 +36,8 @@ export default class Renderer
 	 */
 	circle(position, radius)
 	{
-		let pos = this.project(position);
 		this.context.beginPath();
-		this.context.arc(pos.x, pos.y, radius * this.scale, 0, Math.PI * 2);
+		this.context.arc(position.x, position.y, radius, 0, Math.PI * 2);
 		this.context.closePath();
 		return this;
 	}
@@ -126,8 +51,7 @@ export default class Renderer
 	 */
 	lineTo(vec)
 	{
-		let projected = this.project(vec);
-		this.context.lineTo(projected.x, projected.y);
+		this.context.lineTo(vec.x, vec.y);
 	}
 	/**
 	 * 
@@ -144,52 +68,74 @@ export default class Renderer
 	 * 
 	 * @param {Vec2[]} path 
 	 * @param {number} width
-	 * @param {number} minWidthInPixel
 	 */
-	drawPathWithDirectionArrows(path, width, minWidthInPixel)
+	drawPathWithDirectionArrows(path, width)
 	{
-		let pixelWidth = width * this.scale;
-		if (minWidthInPixel && minWidthInPixel > pixelWidth)
-			pixelWidth = minWidthInPixel;
 		this.beginPath();
 		let d = Infinity;
-		if (path.length > 0)
-			this.lineTo(path[0]);
-		for (let i = 1; i < path.length; i++)
+		for (let i = path.length - 1; i >= 0; i--)
 		{
 			let prev = path[i - 1];
 			let curr = path[i];
 			this.lineTo(curr);
-			let diff = curr.copy().subtract(prev);
-			d += diff.length / pixelWidth * this.scale;
-			if (d > 8)
+			if (prev)
 			{
-				d = 0;
-				let tocurr = diff.normalize().multiply(pixelWidth / this.scale * 3);
-				let leftRotated = Mat2x2.multiply(Mat2x2.create_rotation_matrix(135 / 180 * Math.PI), tocurr);
-				let rightRotated = Mat2x2.multiply(Mat2x2.create_rotation_matrix(-135 / 180 * Math.PI), tocurr);
-				this.lineTo(curr.copy().add(leftRotated));
-				this.lineTo(curr);
-				this.lineTo(curr.copy().add(rightRotated));
-				this.lineTo(curr);
+				let diff = curr.copy().subtract(prev);
+				d += diff.length / width;
+				if (d > 12)
+				{
+					d = 0;
+					let tocurr = diff.normalize().multiply(width * 3);
+					let leftRotated = Mat2x2.multiply(Mat2x2.create_rotation_matrix(135 / 180 * Math.PI), tocurr);
+					let rightRotated = Mat2x2.multiply(Mat2x2.create_rotation_matrix(-135 / 180 * Math.PI), tocurr);
+					this.lineTo(curr.copy().add(leftRotated));
+					this.lineTo(curr);
+					this.lineTo(curr.copy().add(rightRotated));
+					this.lineTo(curr);
+				}
 			}
 		}
-		this.context.lineWidth = pixelWidth;
+		this.context.lineWidth = width;
 		this.context.stroke();
 		return this;
 	}
 	/**
 	 * 
-	 * @param {number} w 
-	 * @param {number} minWidthInPixel
+	 * @param {number} width 
 	 */
-	lineWidth(w, minWidthInPixel = undefined)
+	lineWidth(width)
 	{
-		let pixelWidth = w * this.scale;
-		if (minWidthInPixel && minWidthInPixel > pixelWidth)
-			pixelWidth = minWidthInPixel;
-		this.context.lineWidth = pixelWidth;
+		this.context.lineWidth = width;
 		return this;
+	}
+	/**
+	 * 
+	 * @param {"butt"|"round"|"square"} cap 
+	 */
+	lineCap(cap)
+	{
+		this.context.lineCap = cap;
+	}
+	/**
+	 * 
+	 * @param {"bevel"|"miter"|"round"} join 
+	 */
+	lineJoin(join)
+	{
+		this.context.lineJoin = join;
+	}
+	/**
+	 * 
+	 * @param {{width?: number, cap?: "butt"|"round"|"square", join?: "bevel"|"miter"|"round"}} param0
+	 */
+	lineProp({ width, cap, join })
+	{
+		if (width)
+			this.lineWidth(width);
+		if (cap)
+			this.lineCap(cap);
+		if (join)
+			this.lineJoin(join);
 	}
 	/**
 	 * 
@@ -230,5 +176,35 @@ export default class Renderer
 			this.context.strokeStyle = color;
 		this.context.stroke();
 		return this;
+	}
+	/**
+	 * 
+	 * @param {string} style
+	 * @param {{align?: "start"|"end"|"left"|"right"|"center", baseline?: "top"|"middle"|"bottom"|"hanging"|"ideographic"|"alphabetic"}} param1
+	 */
+	font(style, { align, baseline } = {})
+	{
+		if (align)
+			this.context.textAlign = align;
+		if (baseline)
+			this.context.textBaseline = baseline;
+		if (style)
+			this.context.font = style;
+	}
+	/**
+	 * 
+	 * @param {string} text 
+	 * @param {Vec2} position 
+	 * @param {{align?: "start"|"end"|"left"|"right"|"center", baseline?: "top"|"middle"|"bottom"|"hanging"|"ideographic"|"alphabetic", font?: string}} param2
+	 */
+	fillText(text, position, { align, baseline, font } = {})
+	{
+		if (font)
+			this.font(font);
+		if (align)
+			this.context.textAlign = align;
+		if (baseline)
+			this.context.textBaseline = baseline;
+		this.context.fillText(text, position.x, position.y);
 	}
 }

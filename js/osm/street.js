@@ -117,7 +117,8 @@ export class StreetSection
 		if (start.index === end.index)
 		{
 			geoCoordinates.push(StreetPosition.getGeoPos(street, start.index, start.t));
-			geoCoordinates.push(StreetPosition.getGeoPos(street, end.index, end.t));
+			if (start.t !== end.t)
+				geoCoordinates.push(StreetPosition.getGeoPos(street, end.index, end.t));
 		}
 		else if (start.index < end.index)
 		{
@@ -263,7 +264,11 @@ export class StreetPath
 			for (let i = 0; i < this.streets.length; i++)
 			{
 				let s = this.streets[i];
-				coordinates.push(...new StreetSection(s.street, { index: s.start + (i === 0 ? (s.end > s.start ? 1 : -1) : 0), t: 0 }, { index: s.end + (s.end > s.start ? -1 : 1), t: 0 }).getGeoCoordinates());
+				let start = s.start + (i === 0 ? (s.end > s.start ? 1 : -1) : 0);
+				let end = s.end + (s.end > s.start ? -1 : 1);
+				if (start !== end && (start < end !== s.start < s.end))
+					continue;
+				coordinates.push(...new StreetSection(s.street, { index: start, t: 0 }, { index: end, t: 0 }).getGeoCoordinates());
 			}
 			let lastJunction = this.junctions[this.junctions.length - 1];
 			if (!this.end)

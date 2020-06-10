@@ -40,7 +40,6 @@ export default class OSMRestrictionRelation extends OSMRelation
 	forbids(from, via, to)
 	{
 		let memebers = this.getMembers();
-		console.log({ from, via, to }, memebers);
 		if (from !== memebers.from || via !== memebers.via)
 			return false;
 		return (memebers.to === to) !== /only/.test(this.element.tags.restriction);

@@ -29,9 +29,10 @@ export default class Mat3x3
 	}
 	/**
 	 * 
+	 * @template {Mat3x3|Vec3} T
 	 * @param {Mat3x3} m 
-	 * @param {Mat3x3 | Vec3} v 
-	 * @returns {Mat3x3 | Vec3}
+	 * @param {T} v 
+	 * @returns {T}
 	 */
 	static multiply(m, v)
 	{
