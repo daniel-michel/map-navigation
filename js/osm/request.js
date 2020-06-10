@@ -29,7 +29,7 @@ export default class OSMRequest
 			let obj = this.waitingForFreeSlot;
 			this.waitingForFreeSlot = callbackobj;
 			await new Promise(r => obj.callback = r);
-			await wait(100);
+			await wait(1000);
 		}
 
 		let text;
@@ -54,6 +54,8 @@ export default class OSMRequest
 					}
 					if (times.length > 0)
 						waitTime = Math.min(...times);
+					if (!/\:\r?\n$/.test(text))
+						waitTime = 1000;
 				}
 			}
 			catch (e)
@@ -62,7 +64,7 @@ export default class OSMRequest
 			}
 			if (waitTime > 0)
 				await wait(waitTime);
-			else
+			else if (waitTime === 0)
 				await wait(5000);
 		} while (waitTime >= 0);
 
