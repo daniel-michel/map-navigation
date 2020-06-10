@@ -209,7 +209,7 @@ export default class OSMPathfinder
 		console.log(`pathfinding finished:
 	loading time: ${loadingTime}ms (${(loadingTime / totalTime * 100).toFixed(2)}%)
 	other time: ${totalTime - loadingTime}ms (${((totalTime - loadingTime) / totalTime * 100).toFixed(2)}%)
-	total time: ${totalTime}ms`);
+	total time: ${totalTime}ms (${(totalTime / 1000 / 60).toFixed(2)}min)`);
 
 
 		console.log("path: ", waypoints);
