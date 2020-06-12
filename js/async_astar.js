@@ -44,7 +44,7 @@ export default class AStar
 		this.openList = new SortedArray(elem => elem.fcost);
 		this.from = from;
 		this.to = to;
-		this.accuracy = 0.4;
+		this.accuracy = 0.6;
 	}
 	/**
 	 * 

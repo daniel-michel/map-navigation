@@ -33,9 +33,9 @@ let userInput;
 let loop;
 
 /**
- * @type {StreetPath}
+ * @type {StreetPath[]}
  */
-let path;
+let paths = [];
 
 let mouse_pos = new Vec2();
 
@@ -118,11 +118,14 @@ async function main()
 	console.log(from, to);
 	{
 		let pathfinder = new OSMPathfinder(mapData, from, to, { calculateWeighting: weightingFunction });
-		path = await pathfinder.find();
+		let pathfinder_backwards = new OSMPathfinder(mapData, to, from, { calculateWeighting: weightingFunction });
+		let promise = pathfinder_backwards.find();
+		paths.push(await pathfinder.find());
+		paths.push(await promise);
 	}
 	{
 		let pathfinder = new OSMPathfinder(mapData, from, to, { calculateWeighting: weightingFunction });
-		path = await pathfinder.find();
+		await pathfinder.find();
 	}
 }
 
@@ -166,10 +169,11 @@ async function draw()
 		mapRenderer.lineWidth(driveable ? 4 * meter : 1 * meter, driveable ? 1 : 1).stroke(driveable ? "hsla(0, 0%, 70%, 1)" : "hsla(0, 0%, 70%, 0.5)");
 	}
 
-	if (path)
+	for (let i = paths.length - 1; i >= 0; i--)
 	{
-		let positions = path.getGeoCoordinates().map(geo => geo.getMercatorProjection());
-		mapRenderer.strokeColor("hsl(230, 100%, 60%)").drawPathWithDirectionArrows(positions, 5 * meter, 7);
+		let color = `hsl(${230 + i * 60}, 100%, 60%)`;
+		let positions = paths[i].getGeoCoordinates().map(geo => geo.getMercatorProjection());
+		mapRenderer.strokeColor(color).drawPathWithDirectionArrows(positions, 5 * meter, 7);
 	}
 
 	if (mouse_pos)
@@ -294,7 +298,7 @@ window.onkeydown = async e =>
 {
 	if (e.key === "g")
 	{
-		let geopos = GeoPos.fromMercatorProjection(new MercatorPos(mapRenderer.cameraPosition));
+		let geopos = mapRenderer.cameraPosition.getGeographicCoordinates();
 		let url = `https://www.google.com/maps/@${geopos.lat},${geopos.lon},20z`;
 		console.log(url);
 		open(url, "_blank");
@@ -331,9 +335,9 @@ window.onkeydown = async e =>
 			await new Promise(r => setTimeout(r, 400));
 			mapRenderer.animateTo({ rotation: new Vec3(-10 / 180 * Math.PI, 0, 0) }, { duration: 500 });
 		}, 5000); */
-		if (path)
+		if (paths)
 		{
-			let geoPath = path.getGeoCoordinates();
+			let geoPath = paths[0].getGeoCoordinates();
 			let mercPath = geoPath.map(geo => geo.getMercatorProjection());
 			let boundingBox = Rect.createContaining(...mercPath);
 

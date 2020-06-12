@@ -64,10 +64,10 @@ export default class OSMNode extends OSMElement
 /**
  * 
  * @template T
- * @param {T[]]} array 
+ * @param {T[]} array 
  * @param {T} value 
  */
-function getAllIndices(array, value)
+export function getAllIndices(array, value)
 {
 	let indices = [];
 	for (let i = 0; i < array.length; i++)

@@ -1,7 +1,7 @@
 import OSMData from "./data.js";
 import AStar from "../async_astar.js";
 import Street, { StreetPosition, StreetSection, StreetPath } from "./street.js";
-import OSMNode from "./node.js";
+import OSMNode, { getAllIndices } from "./node.js";
 import Vec3 from "../math/vec3.js";
 
 
@@ -129,29 +129,32 @@ export default class OSMPathfinder
 				});
 			}
 
-			let additionalWaypoints;
+			let additionalWaypoints = [];;
 			let streets;
 			if (node instanceof OSMNode)
 			{
 				streets = await node.getStreets();
-				additionalWaypoints = this.streetPositions.filter(pos => streets.includes(pos.street));
+				let streetPositions = this.streetPositions.filter(pos => streets.includes(pos.street));
+				for (let pos of streetPositions)
+				{
+					let indices = getAllIndices(pos.street.nodes, node);
+					for (let index of indices)
+					{
+						additionalWaypoints.push({ streetPos: pos, section: new StreetSection(pos.street, { index, t: 0 }, { index: pos.index, t: pos.t }) });
+					}
+				}
 				let restrictions = node.restrictions;
 				if (this.restrictions && from.street)
-					additionalWaypoints = additionalWaypoints.filter(streetPos => restrictions.every(res => !res.forbids(from.street, node, streetPos.street)));
+					additionalWaypoints = additionalWaypoints.filter(streetPos => restrictions.every(res => !res.forbids(from.street, node, streetPos.streetPos.street)));
 			}
 			else
 			{
 				streets = [node.street];
-				additionalWaypoints = this.streetPositions.filter(pos => node.street === pos.street && pos !== node);
+				additionalWaypoints = this.streetPositions.filter(pos => node.street === pos.street && pos !== node).map(pos => ({ streetPos: pos, section: StreetSection.fromStreetPositions(node, pos) }));
 			}
 			for (let additional of additionalWaypoints)
 			{
-				let section;
-				if (node instanceof OSMNode)
-					section = StreetSection.fromNodeToStreetPosition(node, additional);
-				else
-					section = StreetSection.fromStreetPositions(node, additional);
-
+				let section = additional.section;
 				if (!this.turnAround && this.restrictions && (section.street === from.street && (section.forwards ? "forwards" : "backwards") === from.direction && section.start.index === from.index))
 					continue;
 
@@ -163,8 +166,8 @@ export default class OSMPathfinder
 				cost *= weight;
 				neighbors.push({
 					cost,
-					waypoint: this.getWaypoint(additional),//this.getWaypoint(additional, { street: additional.street, direction: forwards ? "backwards" : "forwards" }),
-					userData: { street: additional.street, section },
+					waypoint: this.getWaypoint(additional.streetPos),
+					userData: { street: additional.streetPos.street, section },
 				});
 			}
 			return neighbors;
