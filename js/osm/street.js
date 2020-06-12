@@ -245,8 +245,8 @@ export class StreetPath
 		this.junctions = nodes;
 		this.end = end;
 		this.streets = streets;
-		if (!this.junctions?.length && (!this.start || !this.end))
-			throw "Invalid initilization! Either there have to be junction nodes or start and end have to be set";
+		if (!this.junctions?.length && !this.start)
+			throw "Invalid initilization! Either there have to be junction nodes or start has to be set";
 	}
 	getGeoCoordinates()
 	{
@@ -288,7 +288,8 @@ export class StreetPath
 		let streets = [];
 		let nodes = [];
 		let start = streetsections.shift();
-		nodes.push(start.street.nodes[start.end.index]);
+		if (streetsections.length > 1)
+			nodes.push(start.street.nodes[start.end.index]);
 		let end = streetsections.pop();
 		for (let section of streetsections)
 		{
