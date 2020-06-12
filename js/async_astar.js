@@ -16,6 +16,7 @@ import OSMNode from "./osm/node.js";
  * @property {number} hcost heuristic cost from the waypoint to the goal
  * @property {number} [gcost] the cost from the start to this waypoint
  * @property {number} [fcost] gcost + hcost
+ * @property {boolean} [inClosedList] 
  * @property {UserWaypointDataType} userData
  */
 
@@ -37,13 +38,10 @@ export default class AStar
 	constructor(from, to)
 	{
 		/**
+		 * @private
 		 * @type {SortedArray<Waypoint>}
 		 */
 		this.openList = new SortedArray(elem => elem.fcost);
-		/**
-		 * @type {Waypoint[]}
-		 */
-		this.closedList = [];
 		this.from = from;
 		this.to = to;
 		this.accuracy = 0.4;
@@ -62,7 +60,7 @@ export default class AStar
 			let waypoint = this.openList.shift();
 			if (!waypoint)
 				return undefined;
-			this.closedList.push(waypoint);
+			waypoint.inClosedList = true;
 			if (waypoint === this.to)
 			{
 				let path = [];
@@ -80,7 +78,7 @@ export default class AStar
 				let gcost = waypoint.gcost + connection.cost * this.accuracy;
 				let fcost = gcost + connection.waypoint.hcost;
 				let allreadyInList = !isNaN(connection.waypoint.gcost);
-				if (this.closedList.includes(connection.waypoint) || (allreadyInList && connection.waypoint.fcost <= fcost))
+				if (connection.waypoint.inClosedList || (allreadyInList && connection.waypoint.fcost <= fcost))
 					continue;
 				if (allreadyInList)
 					this.openList.remove(connection.waypoint.fcost);
