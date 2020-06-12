@@ -34,7 +34,7 @@ export default class OSMData
 	}
 	/**
 	 * loads the specified area if it is not already loaded 
-	 * @param {Rect} area 
+	 * @param {Rect} area the area in geographic coordinates
 	 */
 	async load(area)
 	{
@@ -113,7 +113,7 @@ export default class OSMData
 	{
 		let boundingBox = `(${rect.bottom}, ${rect.left}, ${rect.top}, ${rect.right})`;
 		let code = `
-			[out:json][timeout:60];
+			[out:json][timeout:180];
 			(
 				way["highway"]${boundingBox};
 				relation["restriction"]${boundingBox};

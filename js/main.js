@@ -47,7 +47,7 @@ let weightingFunction = (street, forwards) =>
 	const speedDistance = 0.4;
 	if (!street.matchesRules())
 		return -1;
-	if ((street.element?.tags?.oneway === "yes" && !forwards) || (street.element?.tags?.oneway === "-1" && forwards))
+	if (((street.element?.tags?.oneway === "yes" || (street.element?.tags?.oneway === undefined && street.element?.tags?.junction === "roundabout")) && !forwards) || (street.element?.tags?.oneway === "-1" && forwards))
 		return -1;
 	let maxspeed = +street.element?.tags?.maxspeed;
 	if (isNaN(maxspeed))
@@ -64,7 +64,7 @@ async function main()
 	resize();
 	renderer = new Renderer(canvas);
 	mapRenderer = new MapRenderer(renderer, mapData);
-	mapRenderer.camera.position = new GeoPos(51.4934, 0).getMercatorProjection();
+	mapRenderer.camera.position = new GeoPos(51.5068058, 0.1683165).getMercatorProjection();
 
 	loop = new Loop(0, () => draw()).start();
 
@@ -113,9 +113,9 @@ async function main()
 		return;
 	mapRenderer.camera.position = from.getMercatorPos();
 	let to = await mapData.getClosestStreet(toCoord.getMercatorProjection(), 0.01, true, DRIVEABLE_STREET_RULE);
-	console.log(from, to);
 	if (!to)
 		return;
+	console.log(from, to);
 	{
 		let pathfinder = new OSMPathfinder(mapData, from, to, { calculateWeighting: weightingFunction });
 		path = await pathfinder.find();
@@ -301,9 +301,7 @@ window.onkeydown = async e =>
 	}
 	else if (e.key === "2")
 	{
-		mapRenderer.camera.rotation.x = 0;
-		mapRenderer.camera.rotation.y = 0;
-		mapRenderer.camera.rotation.z = 0;
+		mapRenderer.animateTo({ rotation: { x: 0, y: 0, z: 0 } });
 	}
 	else if (e.key === "a")
 	{

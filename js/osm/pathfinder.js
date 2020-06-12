@@ -6,9 +6,9 @@ import Vec3 from "../math/vec3.js";
 
 
 /**
- * @typedef {import("../async_astar.js").AStarWaypoint<{node: OSMNode | StreetPosition}, {street: Street}>} OSMWaypoint
- * @typedef {import("../async_astar.js").AStarConnection<{node: OSMNode | StreetPosition}, {street: Street}>} OSMConnection
- * @typedef {{waypoint: OSMWaypoint, from: {street: Street, direction: "forwards"|"backwards"|"none"}}} OSMWaypointsJunction
+ * @typedef {import("../async_astar.js").AStarWaypoint<{node: OSMNode | StreetPosition}, {street: Street, section: StreetSection}>} OSMWaypoint
+ * @typedef {import("../async_astar.js").AStarConnection<{node: OSMNode | StreetPosition}, {street: Street, section: StreetSection}>} OSMConnection
+ * @typedef {{waypoint: OSMWaypoint, from: {street: Street, direction: "forwards"|"backwards"|"none", index: number}}} OSMWaypointsJunction
  */
 
 /**
@@ -67,7 +67,7 @@ export default class OSMPathfinder
 		this.fromWaypoint = this.getWaypoint(this.from);
 
 		/**
-		 * @type {AStar<{node: OSMNode | StreetPosition}, {street: Street}>}
+		 * @type {AStar<{node: OSMNode | StreetPosition}, {street: Street, section: StreetSection}>}
 		 */
 		this.astar = new AStar(this.fromWaypoint, this.toWaypoint);
 		this.ready = true;
@@ -75,17 +75,17 @@ export default class OSMPathfinder
 	/**
 	 * 
 	 * @param {OSMNode|StreetPosition} node
-	 * @param {{street: Street, direction: "forwards"|"backwards"|"none"}} [from]
+	 * @param {{street: Street, direction: "forwards"|"backwards"|"none", index: number}} [from]
 	 * @returns {OSMWaypoint}
 	 */
-	getWaypoint(node, from = { street: undefined, direction: "none" })
+	getWaypoint(node, from = { street: undefined, direction: "none", index: 0 })
 	{
 		if (!this.restrictions)
-			from = { street: undefined, direction: "none" };
+			from = { street: undefined, direction: "none", index: 0 };
 		let existing = this.waypoints.get(node);
 		if (existing)
 		{
-			let allreadyExistingWaypoint = existing.filter(w => w.from.street === from.street && w.from.direction === from.direction)[0];
+			let allreadyExistingWaypoint = existing.filter(w => w.from.street === from.street && w.from.direction === from.direction && w.from.index === from.index)[0];
 			if (allreadyExistingWaypoint)
 				return allreadyExistingWaypoint.waypoint;
 		}
@@ -112,7 +112,7 @@ export default class OSMPathfinder
 			else
 				connections = Object.values(await node.getNextJunctions()).filter(con => con);
 			if (!this.turnAround && this.restrictions)
-				connections = connections.filter(conn => conn.section.street !== from.street || (conn.section.forwards ? "forwards" : "backwards") !== from.direction);
+				connections = connections.filter(conn => conn.section.street !== from.street || (conn.section.forwards ? "forwards" : "backwards") !== from.direction || conn.section.start.index !== from.index);
 			for (let connection of connections)
 			{
 				let forwards = connection.section.forwards;
@@ -124,8 +124,8 @@ export default class OSMPathfinder
 				let cost = connection.section.getLength() * weight;
 				neighbors.push({
 					cost,
-					waypoint: this.getWaypoint(connection.node, { street: connection.section.street, direction: forwards ? "backwards" : "forwards" }),
-					userData: { street: connection.section.street },
+					waypoint: this.getWaypoint(connection.node, { street: connection.section.street, direction: forwards ? "backwards" : "forwards", index: connection.section.end.index }),
+					userData: { street: connection.section.street, section: connection.section },
 				});
 			}
 
@@ -146,28 +146,25 @@ export default class OSMPathfinder
 			}
 			for (let additional of additionalWaypoints)
 			{
-				let forwards;
-				let cost;
-				let weight;
+				let section;
 				if (node instanceof OSMNode)
-				{
-					cost = StreetSection.fromNodeToStreetPosition(node, additional).getLength();
-					forwards = additional.index > additional.street.nodes.findIndex(n => n === node);
-					weight = this.calculateWeighting(additional.street, forwards);
-				}
+					section = StreetSection.fromNodeToStreetPosition(node, additional);
 				else
-				{
-					cost = StreetSection.fromStreetPositions(node, additional).getLength();
-					forwards = additional.index > node.index || (additional.index === node.index && additional.t > node.t);
-					weight = this.calculateWeighting(node.street, forwards);
-				}
+					section = StreetSection.fromStreetPositions(node, additional);
+
+				if (!this.turnAround && this.restrictions && (section.street === from.street && (section.forwards ? "forwards" : "backwards") === from.direction && section.start.index === from.index))
+					continue;
+
+				let cost = section.getLength();
+				let forwards = section.forwards;
+				let weight = this.calculateWeighting(section.street, forwards);
 				if (weight < 0)
 					continue;
 				cost *= weight;
 				neighbors.push({
 					cost,
 					waypoint: this.getWaypoint(additional),//this.getWaypoint(additional, { street: additional.street, direction: forwards ? "backwards" : "forwards" }),
-					userData: { street: additional.street },
+					userData: { street: additional.street, section },
 				});
 			}
 			return neighbors;
@@ -215,13 +212,8 @@ export default class OSMPathfinder
 		console.log("path: ", waypoints);
 		if (!waypoints)
 			return;
-		let streets = waypoints.map(waypoint => waypoint?.connection?.userData?.street).filter(v => v);
-		let nodes = waypoints.map(waypoint => waypoint.waypoint.userData.node);
-		streets.shift();
-		streets.pop();
-		let start = nodes.shift();
-		let end = nodes.pop();
-		let path = StreetPath.fromNodesAndStreets(nodes, streets, start, end);
+		let sections = waypoints.map(waypoint => waypoint?.connection?.userData?.section).filter(v => v);
+		let path = StreetPath.fromStreetSections(sections);
 		console.log("street path:", path);
 		return path;
 	}

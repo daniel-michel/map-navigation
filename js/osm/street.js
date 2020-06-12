@@ -236,8 +236,8 @@ export class StreetPath
 	 * 
 	 * @param {OSMNode[]} nodes 
 	 * @param {{start: number, end: number, street: Street}[]} streets 
-	 * @param {StreetPosition} start 
-	 * @param {StreetPosition} end 
+	 * @param {StreetSection} start 
+	 * @param {StreetSection} end 
 	 */
 	constructor(nodes, streets, start = undefined, end = undefined)
 	{
@@ -252,11 +252,7 @@ export class StreetPath
 	{
 		let coordinates = [];
 		if (this.start)
-		{
-			if (this.junctions.length === 0)
-				return StreetSection.fromStreetPositions(this.start, this.end).getGeoCoordinates();
-			coordinates.push(...StreetSection.fromStreetPositionToNode(this.start, this.junctions[0]).getGeoCoordinates());
-		}
+			coordinates.push(...this.start.getGeoCoordinates());
 		if (this.junctions.length > 0)
 		{
 			if (!this.start)
@@ -273,96 +269,33 @@ export class StreetPath
 			let lastJunction = this.junctions[this.junctions.length - 1];
 			if (!this.end)
 				coordinates.push(lastJunction.geoPos);
+		}
+		if (this.end)
+		{
+			if (this.start && !(this.junctions.length > 0))
+				coordinates.push(...new StreetSection(this.end.street, { index: this.end.start.index + (this.end.forwards ? 1 : -1), t: 0 }, { index: this.end.end.index, t: this.end.end.t }).getGeoCoordinates());
 			else
-				coordinates.push(...StreetSection.fromNodeToStreetPosition(lastJunction, this.end).getGeoCoordinates());
+				coordinates.push(...this.end.getGeoCoordinates());
 		}
 		return coordinates;
 	}
 	/**
 	 * 
-	 * @param {OSMNode[]} nodes 
-	 * @param {Street[]} streets 
-	 * @param {StreetPosition} start 
-	 * @param {StreetPosition} end 
+	 * @param {StreetSection[]} streetsections 
 	 */
-	static fromNodesAndStreets(nodes, streets, start, end)
+	static fromStreetSections(streetsections)
 	{
-		let s = [];
-		for (let i = 0; i < streets.length; i++)
-		{
-			s.push({ start: streets[i].nodes.findIndex(n => n === nodes[i]), end: streets[i].nodes.findIndex(n => n === nodes[i + 1]), street: streets[i] });
-		}
-		return new StreetPath(nodes, s, start, end);
-	}
-	/**
-	 * 
-	 * @param {OSMNode[]} nodes 
-	 */
-	static async setupStreets(nodes)
-	{
-		/**
-		 * @type {{start: number, end: number, street: Street}[]}
-		 */
 		let streets = [];
-		for (let i = 0; i < nodes.length - 1; i++)
+		let nodes = [];
+		let start = streetsections.shift();
+		nodes.push(start.street.nodes[start.end.index]);
+		let end = streetsections.pop();
+		for (let section of streetsections)
 		{
-			let current = nodes[i];
-			let next = nodes[i + 1];
-			let otherStreets = await next.getStreets();
-			let s = (await current.getStreets()).filter(s => otherStreets.includes(s))[0];
-			if (!s)
-			{
-				console.error(otherStreets, await current.getStreets(), current, next, i);
-				throw "No street in common!";
-			}
-			let street = {
-				start: s.nodes.findIndex(node => node === current),
-				end: s.nodes.findIndex(node => node === next),
-				street: s,
-			};
-			streets[i] = street;
+			streets.push({ street: section.street, start: section.start.index, end: section.end.index });
+			nodes.push(section.street.nodes[section.end.index]);
 		}
-		return streets;
-	}
-	/**
-	 * 
-	 * @param {OSMNode[]} nodes 
-	 * @param {StreetPosition} start 
-	 * @param {StreetPosition} end 
-	 */
-	static async createFrom(nodes = [], start = undefined, end = undefined)
-	{
-		return new StreetPath(nodes, await StreetPath.setupStreets(nodes), start, end);
-	}
-	/**
-	 * 
-	 * @param {(OSMNode|StreetPosition)[]} elements 
-	 */
-	static async createFromNodesAndStreetPositions(elements)
-	{
-		let start;
-		if (elements[0] instanceof StreetPosition)
-			start = elements.shift();
-		let end;
-		if (elements[elements.length - 1] instanceof StreetPosition)
-			end = elements.pop();
-		let nodes = elements.filter(elem => elem instanceof OSMNode);
-		return StreetPath.createFrom(nodes, start, end);
-	}
-	/**
-	 * 
-	 * @param {(OSMNode|StreetPosition)[]} elements 
-	 */
-	static async createFromNodesAndStreetPositionsAndStreets(elements, streets)
-	{
-		let start;
-		if (elements[0] instanceof StreetPosition)
-			start = elements.shift();
-		let end;
-		if (elements[elements.length - 1] instanceof StreetPosition)
-			end = elements.pop();
-		let nodes = elements.filter(elem => elem instanceof OSMNode);
-		return StreetPath.fromNodesAndStreets(nodes, streets, start, end);
+		return new StreetPath(nodes, streets, start, end);
 	}
 }
 
