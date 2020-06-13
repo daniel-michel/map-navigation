@@ -33,7 +33,7 @@ export default class MapRenderer
 		 */
 		this.camera = {
 			scale: renderer.width,
-			fov: 75,
+			fov: 75 / 180 * Math.PI,
 			position: { x: 0, y: 0, z: 0 },
 			rotation: { x: 0, y: 0, z: 0 },
 			screenFocus: { x: 0, y: 0 },
@@ -90,11 +90,29 @@ export default class MapRenderer
 	}
 	updateFovFactors()
 	{
-		this.fovFactor = 1 / Math.atan(this.camera.fov / 180 * Math.PI / 2);
+		this.fovFactor = 1 / Math.atan(this.camera.fov / 2);
 		this.fovScaleFactor = this.renderer.height / 2 * this.fovFactor;
 	}
 	getCameraArea()
 	{
+		if (this.isThreeDimensional)
+		{
+			/* let maximumAngle = 70 / 180 * Math.PI;
+			let horizon = -Math.tan(maximumAngle + this.camera.rotation.x) * this.fovScaleFactor + this.renderer.height * (1 - this.camera.screenFocus.y) / 2; */
+			let horizon = this.project(new MercatorPos(Mat2x2.multiply(Mat2x2.create_rotation_matrix(this.camera.rotation.z), new MercatorPos(0, 0.05)).add(this.cameraPosition))).y;
+			if (this.camera.fov / 2 - this.camera.rotation.x < Math.PI / 2)
+				horizon = horizon * ((-this.camera.rotation.x) / (Math.PI / 2 - this.camera.fov / 2));
+			if (horizon < 0)
+				horizon = 0;
+			let screenCorners = [new Vec2(0, horizon), new Vec2(this.renderer.width, horizon), new Vec2(this.renderer.width, this.renderer.height), new Vec2(0, this.renderer.height)];
+
+			let inWorldSpace = screenCorners.map(p => this.project_back_3d(p));
+			if (inWorldSpace.every(p => p))
+			{
+				let containing = Rect.createContaining(...inWorldSpace);
+				return containing;
+			}
+		}
 		let centerOfScreen = this.screenFocus.copy();
 		centerOfScreen.x *= this.renderer.width;
 		centerOfScreen.y *= this.renderer.height;
@@ -115,25 +133,54 @@ export default class MapRenderer
 	}
 	/**
 	 * 
+	 * @param {Vec2} point 
+	 * @returns {MercatorPos}
+	 */
+	project_back(point)
+	{
+		if (this.isThreeDimensional)
+			return this.project_back_3d(point);
+		else
+			return this.project_back_2d(point);
+	}
+	/**
+	 * 
 	 * @param {MercatorPos} point 
 	 */
 	project_3d(point)
 	{
 		let position = point.copy();
 		position.subtract(this.camera.position).multiply(this.camera.scale);
-		/* position.x = (position.x - this.cameraPosition.x) * this.scale;
-		position.y = (position.y - this.cameraPosition.y) * -this.scale; */
 		position.y *= -1;
 		position.divide(this.fovScaleFactor);
 		let v3 = new Vec3(position);
 		let rotated = Mat3x3.multiply_vector(this.rotationMatrix, v3);
 		rotated.add(new Vec3(0, 0, 1));
-		//let rotated = v3;
 		let projected = rotated.vec2().divide(Math.max(rotated.z, 0.01)).multiply(this.fovScaleFactor);
 		projected.add(new Vec2(this.renderer.width * (1 + this.camera.screenFocus.x), this.renderer.height * (1 - this.camera.screenFocus.y)).multiply(0.5));
-		/* projected.x += this.canvas.width / 2;
-		projected.y += this.canvas.height / 2; */
 		return projected;
+	}
+	/**
+	 * 
+	 * @param {Vec2} screenCoordinates 
+	 * @returns {MercatorPos}
+	 */
+	project_back_3d(screenCoordinates)
+	{
+		let point = screenCoordinates.copy();
+		point.subtract(new Vec2(this.renderer.width * (1 + this.camera.screenFocus.x), this.renderer.height * (1 - this.camera.screenFocus.y)).multiply(0.5));
+		point.y *= -1;
+		let ray = new Vec3(point.divide(this.fovScaleFactor));
+		ray.z = 1;
+		ray = Mat3x3.multiply(Mat3x3.create_reverse_rotation_matrix(-this.camera.rotation.x, -this.camera.rotation.y, -this.camera.rotation.z), ray);
+		if (ray.z <= 0)
+			return undefined;
+		ray.multiply(Math.cos(this.camera.rotation.x) / ray.z);
+		let offset = Mat3x3.multiply(Mat3x3.create_reverse_rotation_matrix(-this.camera.rotation.x, -this.camera.rotation.y, -this.camera.rotation.z), new Vec3(0, 0, -1)).vec2();
+		ray.add(offset);
+		ray.multiply(this.fovScaleFactor);
+		let p = new MercatorPos(ray.x, ray.y).divide(this.camera.scale).add(this.camera.position);
+		return p;
 	}
 	/**
 	 * 
@@ -151,7 +198,7 @@ export default class MapRenderer
 	 */
 	project_back_2d(point)
 	{
-		let p = point.copy().subtract(new Vec2(this.renderer.width, this.renderer.height).multiply(0.5));
+		let p = point.copy().subtract(new Vec2(this.renderer.width * (1 + this.camera.screenFocus.x), this.renderer.height * (1 - this.camera.screenFocus.y)).multiply(0.5));
 		p.y *= -1;
 		return new MercatorPos(p.divide(this.camera.scale).add(this.cameraPosition));
 	}
@@ -166,7 +213,6 @@ export default class MapRenderer
 		this.update();
 		this.updateFovFactors();
 		this.isThreeDimensional = this.threeDimensional && (this.camera.rotation.x !== 0 || this.camera.rotation.y !== 0 || this.camera.rotation.z !== 0);;
-		//this.center_projected = this.center_location.project();
 		if (this.threeDimensional)
 		{
 			this.fovScaleFactor = this.renderer.canvas.height / 2 * this.fovFactor;

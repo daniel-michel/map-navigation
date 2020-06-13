@@ -56,7 +56,7 @@ export default class Vec3 extends Vec2
 	{
 		this.x += v.x;
 		this.y += v.y;
-		if (v instanceof Vec3)
+		if (v.z !== undefined)
 			this.z += v.z;
 		return this;
 	}
@@ -64,7 +64,7 @@ export default class Vec3 extends Vec2
 	{
 		this.x -= v.x;
 		this.y -= v.y;
-		if (v instanceof Vec3)
+		if (v.z !== undefined)
 			this.z -= v.z;
 		return this;
 	}

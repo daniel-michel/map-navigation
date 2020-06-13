@@ -178,32 +178,37 @@ async function draw()
 
 	if (mouse_pos)
 	{
-		let closest = await mapData.getClosestStreet(new MercatorPos(mapRenderer.project_back_2d(mouse_pos)), 1000 * meter, false);
-		if (closest)
+		let mousecoords = mapRenderer.project_back(mouse_pos);
+		if (mousecoords)
 		{
-			let positions = closest.street.geoCoordinates.map(geocoord => geocoord.getMercatorProjection());
-			mapRenderer.strokeColor("hsla(0, 100%, 58%, 0.8)").drawPathWithDirectionArrows(positions, 5 * meter, 5);
-			mapRenderer.path([mapRenderer.project_back_2d(mouse_pos), closest.getMercatorPos()]).lineWidth(2 * meter, 2).stroke("hsla(270, 100%, 60%, 0.7)");
-			let font_size = 30;
-			renderer.font((font_size * 0.8) + "px Arial");
-			renderer.fillText(`length = ${closest.street.getLength()}`, new Vec2(50, font_size + 0 * font_size * 0.8));
-			renderer.fillText(`weight = ${weightingFunction(closest.street, true)}`, new Vec2(50, font_size + 1 * font_size * 0.8));
-			let i = 2;
-			for (const name in closest.street.element.tags)
+			let closest = await mapData.getClosestStreet(new MercatorPos(mousecoords), 1000 * meter, false);
+			if (closest)
 			{
-				let value = closest.street.element.tags[name];
-				renderer.fillText(`${name} = ${value}`, new Vec2(50, font_size + i * font_size * 0.8));
-				i++;
-			}
-			for (const res of closest.street.restrictions)
-			{
-				renderer.fillText(`restriction`, new Vec2(50, font_size + i * font_size * 0.8));
-				i++;
-				for (const name in res.element.tags)
+				let positions = closest.street.geoCoordinates.map(geocoord => geocoord.getMercatorProjection());
+				mapRenderer.strokeColor("hsla(0, 100%, 58%, 0.8)").drawPathWithDirectionArrows(positions, 5 * meter, 5);
+				mapRenderer.path([mousecoords, closest.getMercatorPos()]).lineWidth(2 * meter, 2).stroke("hsla(270, 100%, 60%, 0.7)");
+				let font_size = 30;
+				renderer.fillColor("white");
+				renderer.font((font_size * 0.8) + "px Arial");
+				renderer.fillText(`length = ${closest.street.getLength()}`, new Vec2(50, font_size + 0 * font_size * 0.8));
+				renderer.fillText(`weight = ${weightingFunction(closest.street, true)}`, new Vec2(50, font_size + 1 * font_size * 0.8));
+				let i = 2;
+				for (const name in closest.street.element.tags)
 				{
-					let value = res.element.tags[name];
-					renderer.fillText(`    ${name} = ${value}`, new Vec2(50, font_size + i * font_size * 0.8));
+					let value = closest.street.element.tags[name];
+					renderer.fillText(`${name} = ${value}`, new Vec2(50, font_size + i * font_size * 0.8));
 					i++;
+				}
+				for (const res of closest.street.restrictions)
+				{
+					renderer.fillText(`restriction`, new Vec2(50, font_size + i * font_size * 0.8));
+					i++;
+					for (const name in res.element.tags)
+					{
+						let value = res.element.tags[name];
+						renderer.fillText(`    ${name} = ${value}`, new Vec2(50, font_size + i * font_size * 0.8));
+						i++;
+					}
 				}
 			}
 		}
@@ -250,8 +255,9 @@ window.onmousedown = e =>
 	}
 	else if (e.button === 1)
 	{
-		let mousePosMercator = new MercatorPos(mapRenderer.project_back_2d(mouse_pos));
-		mapData.load(new Rect(mousePosMercator.getGeographicCoordinates()));
+		let mousePosMercator = mapRenderer.project_back(mouse_pos);
+		if (mousePosMercator)
+			mapData.load(new Rect(mousePosMercator.getGeographicCoordinates()));
 	}
 };
 window.onmouseup = e =>
@@ -335,7 +341,7 @@ window.onkeydown = async e =>
 			await new Promise(r => setTimeout(r, 400));
 			mapRenderer.animateTo({ rotation: new Vec3(-10 / 180 * Math.PI, 0, 0) }, { duration: 500 });
 		}, 5000); */
-		if (paths)
+		if (paths.length > 0)
 		{
 			let geoPath = paths[0].getGeoCoordinates();
 			let mercPath = geoPath.map(geo => geo.getMercatorProjection());
@@ -354,7 +360,7 @@ window.onkeydown = async e =>
 				let next = mercPath[1];
 				let diff = next.copy().subtract(curr);
 				let angle = Math.atan2(diff.y, diff.x) - Math.PI / 2;
-				await mapRenderer.animateTo({ position: curr, rotation: { x: -55 / 180 * Math.PI, z: angle }, scale: 60 * renderer.height, screenFocus: { y: -0.5 } }, 4000);
+				await mapRenderer.animateTo({ position: curr, rotation: { x: -(90 - 38) / 180 * Math.PI, z: angle }, scale: 60 * renderer.height, screenFocus: { y: -0.5 } }, 4000);
 				await new Promise(r => setTimeout(r, 1000));
 			}
 			for (let i = 0; i < geoPath.length - 1; i++)
