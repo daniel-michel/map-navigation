@@ -2,7 +2,7 @@ import OSMData from "./data.js";
 import GeoPos from "../math/pos.js";
 import Rect from "../math/rect.js";
 import OSMElement from "./osm_element.js";
-import { StreetSection } from "./street.js";
+import Street, { StreetSection } from "./street.js";
 
 export default class OSMNode extends OSMElement
 {
@@ -14,10 +14,31 @@ export default class OSMNode extends OSMElement
 	constructor(node, data)
 	{
 		super(node, data);
+		/**
+		 * @readonly
+		 * @constant
+		 */
 		this.geoPos = new GeoPos(node.lat, node.lon);
+		Object.freeze(this.geoPos);
+		/**
+		 * @readonly
+		 * @constant
+		 */
+		this.mercatorPos = this.geoPos.getMercatorProjection();
+		Object.freeze(this.mercatorPos);
 
+		/**
+		 * @private
+		 */
 		this._isJunction = undefined;
-		this._streets = undefined;
+		/**
+		 * @type {Street[]}
+		 */
+		this._streets = [];
+		/**
+		 * @private
+		 */
+		this._loaded = false;
 	}
 	async getIsJunction()
 	{
@@ -31,12 +52,11 @@ export default class OSMNode extends OSMElement
 	}
 	async getStreets()
 	{
-		if (!this._streets)
+		if (!this._loaded)
 		{
+			this._loaded = true;
 			let area = new Rect(this.geoPos, new GeoPos(0.01, 0.00001));
 			await this.data.load(area);
-			let potentialStreets = this.data.streets.get(area);
-			this._streets = potentialStreets.filter(street => street.nodes.includes(this));
 		}
 		return this._streets;
 	}

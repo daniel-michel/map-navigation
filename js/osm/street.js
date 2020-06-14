@@ -47,19 +47,9 @@ export class StreetPosition
 	getMercatorPos()
 	{
 		if (this.t === 0)
-			return this.street.geoCoordinates[this.index].getMercatorProjection();
-		else if (this.index >= this.street.nodes.length - 1)
-			console.error(this, this.index, this.t, this.street.nodes.length, this.street);
-		try
-		{
-			let pos = MercatorPos.interpolate(this.street.geoCoordinates[this.index].getMercatorProjection(), this.street.geoCoordinates[this.index + 1].getMercatorProjection(), this.t);
-			return pos;
-		}
-		catch (e)
-		{
-			console.error(this, this.index, this.t, this.street.nodes.length, this.street);
-			throw e;
-		}
+			return this.street.mercatorCoordinates[this.index];
+		let pos = MercatorPos.interpolate(this.street.mercatorCoordinates[this.index], this.street.mercatorCoordinates[this.index + 1], this.t);
+		return pos;
 	}
 	async getNextJunctions()
 	{
@@ -245,39 +235,61 @@ export class StreetPath
 		this.junctions = nodes;
 		this.end = end;
 		this.streets = streets;
+		/**
+		 * @private
+		 * @type {GeoPos[]}
+		 */
+		this._geoCoordinates = null;
+		/**
+		 * @private
+		 * @type {MercatorPos[]}
+		 */
+		this._mercatorCoordinates = null;
 		if (!this.junctions?.length && !this.start)
 			throw "Invalid initilization! Either there have to be junction nodes or start has to be set";
 	}
 	getGeoCoordinates()
 	{
-		let coordinates = [];
-		if (this.start)
-			coordinates.push(...this.start.getGeoCoordinates());
-		if (this.junctions.length > 0)
+		if (!this._geoCoordinates)
 		{
-			if (!this.start)
-				coordinates.push(this.junctions[0].geoPos);
-			for (let i = 0; i < this.streets.length; i++)
+			let coordinates = [];
+			if (this.start)
+				coordinates.push(...this.start.getGeoCoordinates());
+			if (this.junctions.length > 0)
 			{
-				let s = this.streets[i];
-				let start = s.start + (i === 0 ? (s.end > s.start ? 1 : -1) : 0);
-				let end = s.end + (s.end > s.start ? -1 : 1);
-				if (start !== end && (start < end !== s.start < s.end))
-					continue;
-				coordinates.push(...new StreetSection(s.street, { index: start, t: 0 }, { index: end, t: 0 }).getGeoCoordinates());
+				if (!this.start)
+					coordinates.push(this.junctions[0].geoPos);
+				for (let i = 0; i < this.streets.length; i++)
+				{
+					let s = this.streets[i];
+					let start = s.start + (i === 0 ? (s.end > s.start ? 1 : -1) : 0);
+					let end = s.end + (s.end > s.start ? -1 : 1);
+					if (start !== end && (start < end !== s.start < s.end))
+						continue;
+					coordinates.push(...new StreetSection(s.street, { index: start, t: 0 }, { index: end, t: 0 }).getGeoCoordinates());
+				}
+				let lastJunction = this.junctions[this.junctions.length - 1];
+				if (!this.end)
+					coordinates.push(lastJunction.geoPos);
 			}
-			let lastJunction = this.junctions[this.junctions.length - 1];
-			if (!this.end)
-				coordinates.push(lastJunction.geoPos);
+			if (this.end)
+			{
+				if (this.start && !(this.junctions.length > 0))
+					coordinates.push(...new StreetSection(this.end.street, { index: this.end.start.index + (this.end.forwards ? 1 : -1), t: 0 }, { index: this.end.end.index, t: this.end.end.t }).getGeoCoordinates());
+				else
+					coordinates.push(...this.end.getGeoCoordinates());
+			}
+			this._geoCoordinates = coordinates;
 		}
-		if (this.end)
+		return this._geoCoordinates;
+	}
+	getMercatorCoordinates()
+	{
+		if (!this._mercatorCoordinates)
 		{
-			if (this.start && !(this.junctions.length > 0))
-				coordinates.push(...new StreetSection(this.end.street, { index: this.end.start.index + (this.end.forwards ? 1 : -1), t: 0 }, { index: this.end.end.index, t: this.end.end.t }).getGeoCoordinates());
-			else
-				coordinates.push(...this.end.getGeoCoordinates());
+			this._mercatorCoordinates = this.getGeoCoordinates().map(geo => geo.getMercatorProjection());
 		}
-		return coordinates;
+		return this._mercatorCoordinates;
 	}
 	/**
 	 * 
@@ -407,15 +419,26 @@ export default class Street extends OSMWay
 		/**
 		 * @type {OSMNode[]}
 		 */
-		this._nodes;
+		this.nodes = this.element.nodes.map(id =>
+		{
+			let node = this.data.nodes[id];
+			node._streets.push(this);
+			return node;
+		});
+		/**
+		 * @private
+		 * @type {GeoPos[]}
+		 */
 		this._geoCoordinates;
+		/**
+		 * @private
+		 * @type {MercatorPos[]}
+		 */
+		this._mercatorCoordinates;
+		/**
+		 * @private
+		 */
 		this._area;
-	}
-	get nodes()
-	{
-		if (!this._nodes)
-			this._nodes = this.element.nodes.map(id => this.data.nodes[id]);
-		return this._nodes;
 	}
 	get area()
 	{
@@ -427,12 +450,13 @@ export default class Street extends OSMWay
 	{
 		if (!this._geoCoordinates)
 			this._geoCoordinates = this.nodes.map(node => node.geoPos);
-		if (this._geoCoordinates.some(geoCoord => !(geoCoord instanceof GeoPos)))
-		{
-			console.error(this);
-			throw "Invalid geo coordinates";
-		}
 		return this._geoCoordinates;
+	}
+	get mercatorCoordinates()
+	{
+		if (!this._mercatorCoordinates)
+			this._mercatorCoordinates = this.nodes.map(node => node.mercatorPos);
+		return this._mercatorCoordinates;
 	}
 	getLength()
 	{
@@ -449,10 +473,10 @@ export default class Street extends OSMWay
 		 * @type {ClosestPoint}
 		 */
 		let closest = null;
-		for (let i = 0; i < this.geoCoordinates.length - 1; i++)
+		for (let i = 0; i < this.mercatorCoordinates.length - 1; i++)
 		{
-			let mercator0 = this.geoCoordinates[i].getMercatorProjection();
-			let mercator1 = this.geoCoordinates[i + 1].getMercatorProjection();
+			let mercator0 = this.mercatorCoordinates[i];
+			let mercator1 = this.mercatorCoordinates[i + 1];
 			let point = Vec2.closestPointOnLine(mercator0, mercator1, p);
 			let dist = Vec2.distance(point.point, p);
 			if (!closest || dist < closest.dist)

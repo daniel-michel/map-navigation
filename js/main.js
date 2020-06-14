@@ -120,8 +120,12 @@ async function main()
 		let pathfinder = new OSMPathfinder(mapData, from, to, { calculateWeighting: weightingFunction });
 		let pathfinder_backwards = new OSMPathfinder(mapData, to, from, { calculateWeighting: weightingFunction });
 		let promise = pathfinder_backwards.find();
-		paths.push(await pathfinder.find());
-		paths.push(await promise);
+		let path = await pathfinder.find();
+		if (path)
+			paths.push(path);
+		path = await promise;
+		if (path)
+			paths.push(path);
 	}
 	{
 		let pathfinder = new OSMPathfinder(mapData, from, to, { calculateWeighting: weightingFunction });
@@ -160,10 +164,10 @@ async function draw()
 		if (!driveable && meter * mapRenderer.camera.scale < 0.3)
 			continue;
 		mapRenderer.beginPath();
-		for (let i = 0; i < street.geoCoordinates.length + skip - 1; i += skip)
+		for (let i = 0; i < street.mercatorCoordinates.length + skip - 1; i += skip)
 		{
-			let index = Math.min(i, street.geoCoordinates.length - 1);
-			let mercator = street.geoCoordinates[index].getMercatorProjection();
+			let index = Math.min(i, street.mercatorCoordinates.length - 1);
+			let mercator = street.mercatorCoordinates[index];
 			mapRenderer.lineTo(mercator);
 		}
 		mapRenderer.lineWidth(driveable ? 4 * meter : 1 * meter, driveable ? 1 : 1).stroke(driveable ? "hsla(0, 0%, 70%, 1)" : "hsla(0, 0%, 70%, 0.5)");
@@ -172,7 +176,7 @@ async function draw()
 	for (let i = paths.length - 1; i >= 0; i--)
 	{
 		let color = `hsl(${230 + i * 60}, 100%, 60%)`;
-		let positions = paths[i].getGeoCoordinates().map(geo => geo.getMercatorProjection());
+		let positions = paths[i].getMercatorCoordinates();
 		mapRenderer.strokeColor(color).drawPathWithDirectionArrows(positions, 5 * meter, 7);
 	}
 
@@ -184,7 +188,7 @@ async function draw()
 			let closest = await mapData.getClosestStreet(new MercatorPos(mousecoords), 1000 * meter, false);
 			if (closest)
 			{
-				let positions = closest.street.geoCoordinates.map(geocoord => geocoord.getMercatorProjection());
+				let positions = closest.street.mercatorCoordinates;
 				mapRenderer.strokeColor("hsla(0, 100%, 58%, 0.8)").drawPathWithDirectionArrows(positions, 5 * meter, 5);
 				mapRenderer.path([mousecoords, closest.getMercatorPos()]).lineWidth(2 * meter, 2).stroke("hsla(270, 100%, 60%, 0.7)");
 				let font_size = 30;

@@ -135,9 +135,6 @@ export default class OSMData
 	addElements(elements)
 	{
 		let nodes = elements.filter(elem => elem.type === "node").map(node => new OSMNode(node, this));
-		let ways = elements.filter(elem => elem.type === "way").map(way => way?.tags?.highway ? new Street(way, this) : new OSMWay(way, this));
-		let relations = elements.filter(elem => elem.type === "relation").map(relation => relation?.tags?.restriction ? new OSMRestrictionRelation(relation, this) : new OSMRelation(relation, this));
-
 		let newNodes = [];
 		for (let node of nodes)
 		{
@@ -147,6 +144,8 @@ export default class OSMData
 				this.nodes[node.element.id] = node;
 			}
 		}
+
+		let ways = elements.filter(elem => elem.type === "way").map(way => way?.tags?.highway ? new Street(way, this) : new OSMWay(way, this));
 		let newWays = [];
 		for (let way of ways)
 		{
@@ -156,6 +155,8 @@ export default class OSMData
 				this.ways[way.element.id] = way;
 			}
 		}
+
+		let relations = elements.filter(elem => elem.type === "relation").map(relation => relation?.tags?.restriction ? new OSMRestrictionRelation(relation, this) : new OSMRelation(relation, this));
 		let newRelations = [];
 		for (let restriction of relations)
 		{
