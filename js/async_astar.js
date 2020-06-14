@@ -1,6 +1,4 @@
-import SortedArray from "./sorted_array.js";
-import OSMNode from "./osm/node.js";
-
+import PriorityQueue from "./priority_queue.js";
 
 /**
  * @template UserWaypointDataType
@@ -39,9 +37,9 @@ export default class AStar
 	{
 		/**
 		 * @private
-		 * @type {SortedArray<Waypoint>}
+		 * @type {PriorityQueue<Waypoint>}
 		 */
-		this.openList = new SortedArray(elem => elem.fcost);
+		this.openList = new PriorityQueue((a, b) => a.fcost - b.fcost);
 		this.from = from;
 		this.to = to;
 		this.accuracy = 0.6;
@@ -54,12 +52,14 @@ export default class AStar
 	{
 		this.from.gcost = 0;
 		this.from.fcost = this.from.gcost + this.from.hcost;
-		this.openList.add(this.from);
+		this.openList.insert(this.from);
 		while (true)
 		{
-			let waypoint = this.openList.shift();
+			let waypoint = this.openList.deleteMin();
 			if (!waypoint)
 				return undefined;
+			if (waypoint.inClosedList)
+				continue;
 			waypoint.inClosedList = true;
 			if (waypoint === this.to)
 			{
@@ -75,17 +75,17 @@ export default class AStar
 			let connections = await waypoint.getNeighbors();
 			for (let connection of connections)
 			{
+				if (connection.waypoint.inClosedList)
+					continue;
 				let gcost = waypoint.gcost + connection.cost * this.accuracy;
 				let fcost = gcost + connection.waypoint.hcost;
 				let allreadyInList = !isNaN(connection.waypoint.gcost);
-				if (connection.waypoint.inClosedList || (allreadyInList && connection.waypoint.fcost <= fcost))
+				if (allreadyInList && connection.waypoint.fcost <= fcost)
 					continue;
-				if (allreadyInList)
-					this.openList.remove(connection.waypoint.fcost);
 				connection.waypoint.gcost = gcost;
 				connection.waypoint.fcost = fcost;
 				connection.waypoint.previous = { connection: connection, previous: waypoint };
-				this.openList.add(connection.waypoint);
+				this.openList.insert(connection.waypoint);
 			}
 		}
 	}
