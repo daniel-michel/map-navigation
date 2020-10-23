@@ -27,6 +27,19 @@ export default class Mat3x3
 			];
 		}
 	}
+	static transpose(rotationMatrix)
+	{
+		let m = [];
+		for (let i = 0; i < 3; i++)
+		{
+			m[i] = [];
+			for (let j = 0; j < 3; j++)
+			{
+				m[i][j] = rotationMatrix.m[j][i];
+			}
+		}
+		return new Mat3x3(m);
+	}
 	/**
 	 * 
 	 * @template {Mat3x3|Vec3} T
@@ -38,6 +51,7 @@ export default class Mat3x3
 	{
 		if (v instanceof Vec3)
 		{
+			// @ts-ignore
 			return new Vec3(
 				m.m[0][0] * v.x + m.m[0][1] * v.y + m.m[0][2] * v.z,
 				m.m[1][0] * v.x + m.m[1][1] * v.y + m.m[1][2] * v.z,

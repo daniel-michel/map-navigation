@@ -19,6 +19,10 @@ export default class Vec2
 			this.y = y;
 		}
 	}
+	get heading()
+	{
+		return Math.atan2(this.y, this.x);
+	}
 	get length()
 	{
 		return Math.sqrt(this.x * this.x + this.y * this.y);
@@ -31,6 +35,13 @@ export default class Vec2
 	copy()
 	{
 		return new Vec2(this);
+	}
+	/**
+	 * @returns {[number, number]}
+	 */
+	toArray()
+	{
+		return [this.x, this.y];
 	}
 	/**
 	 * 
@@ -87,7 +98,15 @@ export default class Vec2
 		this.y -= v.y;
 		return this;
 	}
-
+	rotate90DegRight()
+	{
+		[this.x, this.y] = [this.y, -this.x];
+		return this;
+	}
+	rotate90DegLeft()
+	{
+		[this.x, this.y] = [-this.y, this.x];
+	}
 	/**
 	 * 
 	 * @param {Vec2} v 
@@ -95,6 +114,16 @@ export default class Vec2
 	dotProduct(v)
 	{
 		return this.x * v.x + this.y * v.y;
+	}
+
+	/**
+	 * 
+	 * @param {number} angle the angle in radians
+	 * @param {number} length 
+	 */
+	static fromAngle(angle, length = 1)
+	{
+		return new Vec2(Math.cos(angle), Math.sin(angle)).multiply(length);
 	}
 	/**
 	 * 
@@ -244,10 +273,10 @@ export default class Vec2
 		{
 			if (ls.x === le.x)
 				return new Vec2(ls);
-			return new Vec2(ls.y, p.x);
+			return new Vec2(p.x, ls.y);
 		}
 		if (ls.x === le.x)
-			return new Vec2(p.y, ls.x);
+			return new Vec2(ls.x, p.y);
 
 		// function going through the points ls and le:
 		// y = slope * x + b

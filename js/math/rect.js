@@ -41,6 +41,16 @@ export default class Rect
 	{
 		return this.halfSize.y * 2;
 	}
+
+	/**
+	 * 
+	 * @param {Rect} rect 
+	 */
+	contains(rect)
+	{
+		return this.left <= rect.left && this.right >= rect.right && this.bottom <= rect.bottom && this.top >= rect.top;
+	}
+
 	/**
 	 * 
 	 * @param {number} left 

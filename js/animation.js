@@ -191,25 +191,27 @@ function assignToState(target, source)
 }
 /**
  * 
- * @param {AnimationState} a 
- * @param {AnimationState} b 
- * @param {AnimationState} diff 
+ * @param {AnimationState|number} a 
+ * @param {AnimationState|number} b 
+ * @param {AnimationState|number} diff 
  * @param {number} adaptFactor 
  * @param {number} t 
  * @param {*} intType 
  */
-function interpolateWithStartRate(a, b, diff, adaptFactor, t, intType)
+function interpolateStateWithStartRate(a, b, diff, adaptFactor, t, intType)
 {
 	if (typeof a === "number")
 	{
 		if (!intType)
 		{
-			return interpolateWithStartEndRate(a, b, diff * adaptFactor, 0, t);
+			//return interpolateWithStartEndRate(a, b, diff * adaptFactor, 0, t);
+			return interpolateWithStartRate(a, b, diff * adaptFactor, t);
 		}
 		else if (intType === "angle")
 		{
 			let angleDiff = getAngleDiff(a, b);
-			let anglet = interpolateWithStartEndRate(0, 1, -(diff * adaptFactor) / angleDiff, 0, t);
+			//let anglet = interpolateWithStartEndRate(0, 1, -(diff * adaptFactor) / angleDiff, 0, t);
+			let anglet = interpolateWithStartRate(0, 1, -(diff * adaptFactor) / angleDiff, t);
 			if (angleDiff === 0)
 				anglet = 0;
 			return interpolateAngle(a, b, anglet);
@@ -223,7 +225,7 @@ function interpolateWithStartRate(a, b, diff, adaptFactor, t, intType)
 		{
 			if (b[prop] !== undefined && diff[prop] !== undefined)
 			{
-				let val = interpolateWithStartRate(a[prop], b[prop], diff[prop], adaptFactor, t, intType?.[prop] ? intType[prop] : undefined);
+				let val = interpolateStateWithStartRate(a[prop], b[prop], diff[prop], adaptFactor, t, intType?.[prop] ? intType[prop] : undefined);
 				if (val !== undefined)
 					res[prop] = val;
 			}
@@ -246,6 +248,19 @@ function interpolateWithStartEndRate(startval, endval, startrate, endrate, t)
 	return endval * (3 - 2 * t) * t * t + startval * (1 + t * t * (-3 + 2 * t)) + t * (startrate + t * (-2 * startrate - endrate + (startrate + endrate) * t));
 	//(-2*b+c+2*a+d)*t^3+(3*b-2*c-3*a-d)*t^2+c*t+a
 	//return (-2 * endval + startrate + 2 * startval + endrate) * t * t * t + (3 * endval - 2 * startrate - 3 * startval - endrate) * t * t + startrate * t + startval;
+}
+/**
+ * 
+ * @param {number} startval 
+ * @param {number} endval 
+ * @param {number} startrate 
+ * @param {number} t 
+ */
+function interpolateWithStartRate(startval, endval, startrate, t)
+{
+	//return (-2 * endval + startrate + 2 * startval) * t ** 3 + (-2 * startrate - 3 * startval + 3 * endval) * t ** 2 + startrate * t + startval;
+	return t * (t * (t * (2 * startval + startrate) - 3 * startval - 2 * startrate) + startrate) + startval + endval * (3 - 2 * t) * t * t;
+	//return startval*((2*t-2)*t**2+1)+t*(3-2*t)*t**2+startrate*((t-2)*t+1)*t;
 }
 
 function getAnimationTime()
@@ -282,7 +297,7 @@ export default class Animator
 		let adaptFactor = duration / h;
 		let advancedTimingFunction = t =>
 		{
-			return interpolateWithStartRate(at, to, stateChangeRate, adaptFactor, t, this.intTypes)
+			return interpolateStateWithStartRate(at, to, stateChangeRate, adaptFactor, t, this.intTypes)
 		};
 		let animation = {
 			start: { state: at, time },
